@@ -1,6 +1,6 @@
 # Personal Reference Library — Project Brief
 
-**Version:** 0.26
+**Version:** 0.27
 **Updated:** September 28, 2026  
 **Owner:** Tazo Lomtadze  
 **Current stage:** Private cloud library with direct extension capture and hosted X checks. The local server is stopped. Historical exclusions and the spending counter are retained; recovery controls include Trash/restore, X reconnect and media refresh.
@@ -564,3 +564,12 @@ Cards now display the attachment count. Expanded albums use original proportions
 At the owner's request, removed the duplicate X/Websites collection headings, both descriptive subtitles, the separate reference-total row, and X-card avatars/source arrows. The top section tabs, search, album counts and card opening remain. Author attribution and the original X link remain inside expanded references; website images and titles still link to their sources.
 
 Connections & Trash is no longer mounted on the normal browsing screen. Existing recovery, pairing and sync controls remain accessible by explicitly opening /#manage, so hidden browsing controls do not remove the ability to restore discarded references or reconnect X. This UI change does not make paid X requests or change sync settings. Syntax and cloud build checks passed.
+
+
+## 31. First UI polish pass — September 28, 2026
+
+The owner approved implementing the better-ui review. Consolidated the library name, tabs, search and utility menu into a sticky 72px desktop header; the grid starts 24px below it. Removed the redundant name subtitle and browsing footer. Account sign-out, sync status and connection/Trash tools are now grouped inside the header menu; /#manage remains a compatible entry point. Website maintenance actions are in hover/focus menus, visible on touch. Expanded-reference maintenance actions sit beside navigation, leaving the title full width.
+
+Website previews now have a single 10px image surface, a neutral inset outline and restrained shadow. The detail backdrop is mostly opaque with less blur and lighter media shadows. The narrower sidebar separates title, author, content and quiet metadata. Search and secondary text are more readable; the mobile search input uses 16px type. Icon targets are 44px. Controls have subtle shading and 0.96 press feedback; menu entries and detail open/close use brief opacity/transform motion. The grid has no entrance animation. Reduced-motion rules remove the added transitions and press scaling, and the existing autoplay preference remains intact.
+
+**Validation:** Cloud build, JavaScript syntax and diff checks passed. Live production browser checks covered both tabs, real loaded previews, search filtering to Matt Sellers, search reset on tab switch, account-menu status, website action-menu placement, expanded album position changes, and maintenance actions moved out of the main content. Real X videos visibly advanced between screenshots. A live Escape dismissal issue was found and corrected so the detail menu can close independently of the dialog. No references were deleted and no paid X refresh/check action was triggered by these UI tests. Mobile layout and reduced-motion behavior were checked in implementation but not tested on a physical mobile device or OS preference in this pass.
