@@ -3,7 +3,7 @@ const db=createClient(SUPABASE_URL,SUPABASE_KEY);
 let user;
 const main=document.querySelector('main');
 const labLink=document.querySelector('.lab-link');
-const personalLabel=document.querySelector('footer span:last-child');
+const personalLabel=document.querySelector('#privacy-status');
 const notice=document.createElement('p');notice.className='status';notice.setAttribute('role','status');
 const login=document.createElement('form');login.className='cloud-login';
 const title=document.createElement('h1');title.textContent='Your private library';
@@ -12,14 +12,14 @@ const email=document.createElement('input');email.type='email';email.required=tr
 const submit=document.createElement('button');submit.type='submit';submit.textContent='Email me a sign-in link';
 login.append(title,description,email,submit,notice);
 login.addEventListener('submit',async e=>{e.preventDefault();submit.disabled=true;notice.textContent='Sending your sign-in link…';const {error}=await db.auth.signInWithOtp({email:email.value.trim(),options:{emailRedirectTo:location.origin+'/'}});notice.textContent=error?error.message:'Check your email and open the sign-in link on this device.';submit.disabled=false;});
-function signedOut(){main.hidden=true;document.querySelector('nav').hidden=true;labLink.hidden=true;document.body.append(login);}
+function signedOut(){main.hidden=true;document.querySelector('nav').hidden=true;labLink.hidden=true;document.querySelector('.account-menu').hidden=true;document.querySelector('.search').hidden=true;document.body.append(login);}
 const initial=await db.auth.getSession();
 if(initial.error)notice.textContent=initial.error.message;
 if(!initial.data.session){signedOut();await new Promise(resolve=>{const {data:{subscription}}=db.auth.onAuthStateChange((event,session)=>{if(session){subscription.unsubscribe();resolve();}});});}
 const verified=await db.auth.getUser();
 if(verified.error||!verified.data.user){await db.auth.signOut({scope:'local'});location.replace('/');throw Error('Sign in again to continue.');}
 user=verified.data.user;
-login.remove();main.hidden=false;document.querySelector('nav').hidden=false;labLink.hidden=false;
+login.remove();main.hidden=false;document.querySelector('nav').hidden=false;labLink.hidden=false;document.querySelector('.account-menu').hidden=false;document.querySelector('.search').hidden=false;
 labLink.textContent='Sign out';labLink.href='#';labLink.addEventListener('click',async e=>{e.preventDefault();const {error}=await db.auth.signOut({scope:'local'});if(error){document.querySelector('#status').textContent=error.message;return;}location.replace('/');});
 personalLabel.textContent='Private · Saved in your account';
 const reply=data=>new Response(JSON.stringify(data),{headers:{'Content-Type':'application/json'}});
@@ -60,7 +60,7 @@ const tools=document.createElement('details');tools.className='cloud-tools';
 const summary=document.createElement('summary');summary.textContent='Connections & Trash';
 const panel=document.createElement('div');panel.className='cloud-panel';
 const report=document.createElement('p');report.setAttribute('role','status');
-function action(label,fn){const button=document.createElement('button');button.type='button';button.textContent=label;button.addEventListener('click',async()=>{button.disabled=true;try{await fn();}catch(e){report.textContent=e.message;}finally{button.disabled=false;}});panel.append(button);return button;}
+function action(label,fn){const button=document.createElement('button');button.type='button';button.textContent=label;button.addEventListener('click',async()=>{button.disabled=true;try{await fn();}catch(e){report.textContent=e.message;}finally{button.disabled=false;}});button.className='menu-item';panel.append(button);return button;}
 async function connectionStatus(){const status=await cloudRequest('/status');report.textContent=status?`${status.enabled?'X checks on':'X checks paused'} · ${status.message}${status.enabled&&status.next_check?' Next scheduled check: '+new Date(status.next_check*1000).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})+'.':''} · $${((status.reserved_units||0)/1000).toFixed(3)} of $3 allowance reserved (conservative estimate).`:'X cloud connection is not ready yet.';}
 action('Connect extension',async()=>{
  if(document.documentElement.dataset.libraryExtension!=='cloud-v1')throw Error('Reload the updated Reference Library extension in Chrome, then reload this page.');
@@ -80,8 +80,9 @@ action('Open Trash',async()=>{
 });
 panel.append(report,trash);tools.append(summary,panel);
 tools.addEventListener('toggle',()=>{if(tools.open)connectionStatus().catch(e=>{report.textContent=e.message;});});
-// Keep recovery tools off the browsing screen; open them explicitly with /#manage.
-function managementView(){if(location.hash==='#manage'){document.querySelector('main').prepend(tools);tools.open=true;}else{tools.open=false;tools.remove();}}
+document.querySelector('#connection-tools').append(tools);
+// Existing maintenance links still open the utility menu directly.
+function managementView(){if(location.hash==='#manage'){document.querySelector('.account-menu').open=true;tools.open=true;}}
 window.addEventListener('hashchange',managementView);managementView();
 db.auth.onAuthStateChange(event=>{if(event==='SIGNED_OUT')location.replace('/');});
 await import('/app.js');
