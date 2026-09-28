@@ -133,3 +133,16 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,.u
 .topbar nav.has-highlight .tab.active{background:transparent}
 .topbar .tab:focus-visible{border-radius:999px}
 @media(prefers-reduced-motion:reduce){.topbar .nav-highlight{transition:none!important}}
+
+/* Rounded shadcn outline styling for the header utilities. */
+.topbar .search{height:32px;min-height:32px;padding:0 12px;gap:8px;border:1px solid var(--line);border-radius:999px;background:var(--canvas);transition:background-color 140ms ease}
+.topbar .search img{width:16px;height:16px;flex:none}
+.topbar .search input{min-width:0;font-size:13px;line-height:20px;padding:0}
+.topbar .account-menu>summary{position:relative;width:32px;height:32px;min-width:32px;min-height:32px;padding:0;border:1px solid var(--line);border-radius:50%;background:var(--canvas)}
+.topbar .account-menu>summary::after{content:'';position:absolute;inset:-6px;border-radius:50%}
+.topbar .account-menu>summary img{width:16px;height:16px}
+.topbar .account-menu[open]>summary{background:var(--soft)}
+@media(hover:hover) and (pointer:fine){.topbar .search:hover,.topbar .account-menu>summary:hover{background:var(--soft)}}
+@media(max-width:760px){.topbar .search input{font-size:16px}}
+@media(pointer:coarse){.topbar .search{height:44px;min-height:44px}.topbar .account-menu>summary{width:44px;height:44px;min-width:44px;min-height:44px}.topbar .account-menu>summary::after{inset:0}}
+@media(prefers-reduced-motion:reduce){.topbar .search{transition:none}}
