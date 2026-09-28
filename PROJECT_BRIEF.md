@@ -1,6 +1,6 @@
 # Personal Reference Library — Project Brief
 
-**Version:** 0.25
+**Version:** 0.26
 **Updated:** September 28, 2026  
 **Owner:** Tazo Lomtadze  
 **Current stage:** Private cloud library with direct extension capture and hosted X checks. The local server is stopped. Historical exclusions and the spending counter are retained; recovery controls include Trash/restore, X reconnect and media refresh.
@@ -557,3 +557,10 @@ Cards now display the attachment count. Expanded albums use original proportions
 **Controlled verification:** 16 JavaScript tests passed, including unordered API includes mapped back to all four attachment keys, missing/unsafe media slots, mixed image/video projection and existing import/queue guards. JavaScript syntax, cloud build and diff checks passed. Mixed-media and failure cases are controlled fixtures, not real-source browser proof. Edge Function library-service version 2 and GitHub/Vercel commits c7578b7 / a8f749d contain the implementation.
 
 **Costs:** The same post lookup returns all attachment objects using attachments.media_keys expansion. This is one post resource, not four post lookups. X's public pricing currently lists Post Read at $0.005 and User Read at $0.010; the app retains its conservative 15-unit reservation per enriched post, separate from bookmark-list checks. Author expansions and provider deduplication affect actual billing, so this is not a measured total invoice cost. Browsing stored album links makes no paid X API request. Current official references: https://docs.x.com/x-api/getting-started/pricing and https://docs.x.com/x-api/fundamentals/expansions.
+
+
+## 30. Reduce browsing chrome — September 28, 2026
+
+At the owner's request, removed the duplicate X/Websites collection headings, both descriptive subtitles, the separate reference-total row, and X-card avatars/source arrows. The top section tabs, search, album counts and card opening remain. Author attribution and the original X link remain inside expanded references; website images and titles still link to their sources.
+
+Connections & Trash is no longer mounted on the normal browsing screen. Existing recovery, pairing and sync controls remain accessible by explicitly opening /#manage, so hidden browsing controls do not remove the ability to restore discarded references or reconnect X. This UI change does not make paid X requests or change sync settings. Syntax and cloud build checks passed.

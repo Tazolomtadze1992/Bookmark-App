@@ -78,7 +78,10 @@ action('Open Trash',async()=>{
  trash.replaceChildren();if(!data.length)trash.textContent='Trash is empty.';
  for(const row of data){const line=document.createElement('p'),button=document.createElement('button');line.append(document.createTextNode(row.record.title+' '));button.textContent='Restore';button.addEventListener('click',async()=>{button.disabled=true;const {error}=await db.from('library_references').update({deleted_at:null}).eq('id',row.id);if(error){report.textContent=error.message;button.disabled=false;return;}line.remove();window.dispatchEvent(new Event('library-refresh'));});line.append(button);trash.append(line);}
 });
-panel.append(report,trash);tools.append(summary,panel);document.querySelector('.toolbar').prepend(tools);
+panel.append(report,trash);tools.append(summary,panel);
 tools.addEventListener('toggle',()=>{if(tools.open)connectionStatus().catch(e=>{report.textContent=e.message;});});
+// Keep recovery tools off the browsing screen; open them explicitly with /#manage.
+function managementView(){if(location.hash==='#manage'){document.querySelector('main').prepend(tools);tools.open=true;}else{tools.open=false;tools.remove();}}
+window.addEventListener('hashchange',managementView);managementView();
 db.auth.onAuthStateChange(event=>{if(event==='SIGNED_OUT')location.replace('/');});
 await import('/app.js');
