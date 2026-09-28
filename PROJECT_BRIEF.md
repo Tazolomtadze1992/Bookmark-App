@@ -1,9 +1,9 @@
 # Personal Reference Library — Project Brief
 
-**Version:** 0.20  
+**Version:** 0.21  
 **Updated:** September 28, 2026  
 **Owner:** Tazo Lomtadze  
-**Current stage:** Local library interface built and browser-tested using 11 real saves: separate X/Websites tabs, masonry previews, expanded X view, simplified detail views and autoplay. Redundant favorites, category controls and play/pause buttons have been removed at the owner’s request. Cloud access remains future work.  
+**Current stage:** Private cloud library deployed on Vercel with Supabase email sign-in, owner-scoped records and private previews. All 11 existing references copied with owner approval and verified online. Capture and automatic X checks still run locally; automatic cloud ingestion is the next milestone.  
 **Canonical working file:** `PROJECT_BRIEF.md`
 
 ## 1. Personal reference library
@@ -482,3 +482,18 @@ Validation: JavaScript syntax check passed. Live Chrome showed all six real X ca
 
 
 Section 24 follow-up: at the owner’s request, mute/unmute controls were also removed from grid cards. Cards remain muted and autoplay; sound control is available only in the expanded view. Live Chrome verification confirmed no card sound buttons remain.
+
+
+## 25. Private cloud library and Vercel repair — September 28, 2026
+
+The Vercel deployment reported Ready but returned 404 because the repository only provided a local Python/SQLite server, with no Vercel-compatible build output. Added a static cloud build of the existing library, preserving the local server and interface. Production: https://bookmark-app-nu-seven.vercel.app/. Application commit: `9a993b74ba9d028a3affe285d374819e47ededca`.
+
+The owner created the Bookmark App Supabase project and completed email confirmation personally. The agent did not read or store the database password. The browser bundle contains only the public project URL and publishable key; no service-role, X API, OAuth, local pairing or database credentials. The build rejects missing configuration and secret-key formats. Supabase stores references under the authenticated owner's ID with row-level security for reads/inserts/updates, and JPEG previews in a private owner-scoped bucket. An automatically created administrative helper's unnecessary execute privileges were revoked from public/anon/authenticated roles.
+
+The owner explicitly approved copying the 11 saved references, including text, URLs, previews and playback links. The selected local export included 6 X posts, 5 websites, 10 captured JPEG previews and 6 cached playback manifests; it excluded credentials, baseline bookmark IDs and private capture assessments. Import completed through the signed-in production interface. Original local records remain intact. Videos are still streamed from the saved X media URLs; no full video files were archived.
+
+**Real-source validation:** Production no longer returns 404. Email sign-in completed. The live library displays 6 X and 5 website records after import and after reload. Successive screenshots showed all six videos advancing without Play clicks. The expanded Edoardo reel rendered, with actual author/text/dates; all five website screenshots loaded. An anonymous REST read of the references table returned HTTP 401 permission denied. A database transaction using an unrelated authenticated identity returned zero visible references and zero visible preview objects, then rolled back. This tests access isolation against the real stored collection, not a mocked response.
+
+**Controlled checks:** Cloud build and JavaScript syntax checks passed; the build rejects missing or secret-looking key configuration; output excludes local server/data/pairing files. Eight extension mock checks passed. Earlier 59-test Python backend results remain historical; the unchanged local backend was not re-tested in this deployment pass. Screenshot evidence: `capture-evidence/cloud-library.png` (outside the Git source checkout). The source, deployment configuration, migration and import/export implementation are on GitHub; the personal export remains ignored.
+
+**Boundary and next step:** This is persistent private cloud browsing plus an owner-selected import, not automatic cloud capture. New extension saves and new-X-bookmark detection still depend on the Mac and local process. Updating the cloud copy currently requires a fresh export/import. Next, connect those save paths to authenticated cloud ingestion with retries and existing spending controls, then validate from a second device. Mobile capture, cloud-scheduled X polling, long-term media URL refresh and broader account recovery remain unvalidated. No extra X media lookup was required for this migration; the separately authorized local polling workflow was not reconfigured.

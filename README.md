@@ -1,6 +1,6 @@
 # Bookmark App
 
-A private, local reference library for saved websites and X posts. The current prototype runs on your Mac; GitHub stores its source code, not your saved collection or credentials.
+A private reference library for saved websites and X posts. Capture runs locally on your Mac; an optional Vercel build provides email sign-in and persistent private browsing through Supabase. GitHub stores source code, not your saved collection or credentials.
 
 ## Current features
 
@@ -12,7 +12,7 @@ A private, local reference library for saved websites and X posts. The current p
 - Optional read-only X bookmark sync that excludes the initial bookmark baseline and imports new bookmarks only.
 - A separate Capture Lab at `/lab` for capture assessment, API experiments and sync settings.
 
-Favorites and category controls were removed after user testing. Cloud hosting, cross-device access, mobile capture and visual classification are future work. This is a single-user prototype, not a public server deployment.
+Favorites and category controls were removed after user testing. The cloud library supports imported collections; automatic cloud ingestion, mobile capture and visual classification remain future work. The Python server remains loopback-only.
 
 ## Run locally
 
