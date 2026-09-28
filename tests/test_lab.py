@@ -75,6 +75,18 @@ class HTTPTests(unittest.TestCase):
         try:
             with urllib.request.urlopen(req,timeout=3) as r:return r.status,r.read(),r.headers
         except urllib.error.HTTPError as e:return e.code,e.read(),e.headers
+    def test_cloud_controls_require_local_origin_confirmation_and_token(self):
+        from unittest.mock import patch
+        with patch.object(self.server.cloud, 'connect') as action:
+            self.assertEqual(self.request('/api/cloud/connect','POST',{'confirm':True,'email':'owner@example.com'})[0],403)
+            self.assertEqual(self.request('/api/cloud/connect','POST',{'email':'owner@example.com'},extra={'Origin':self.base})[0],403)
+            self.assertEqual(self.request('/api/cloud/connect','POST',{'confirm':True,'email':'owner@example.com'},token=False,extra={'Origin':self.base})[0],403)
+            action.assert_not_called()
+    def test_invalid_cloud_callback_does_not_exchange_tokens(self):
+        from unittest.mock import patch
+        with patch.object(self.server.cloud, 'request') as action:
+            self.assertEqual(self.request('/oauth/supabase/callback?code=untrusted',token=False)[0],400)
+            action.assert_not_called()
     def test_probe_requires_local_origin_and_explicit_confirmation(self):
         from unittest.mock import patch
         with patch('x_probe.execute_lookup') as lookup:

@@ -12,7 +12,7 @@ A private reference library for saved websites and X posts. Capture runs locally
 - Optional read-only X bookmark sync that excludes the initial bookmark baseline and imports new bookmarks only.
 - A separate Capture Lab at `/lab` for capture assessment, API experiments and sync settings.
 
-Favorites and category controls were removed after user testing. The cloud library supports imported collections; automatic cloud ingestion, mobile capture and visual classification remain future work. The Python server remains loopback-only.
+Favorites and category controls were removed after user testing. The cloud library supports imported collections and automatic delivery from a connected Mac; mobile capture and visual classification remain future work. The Python server remains loopback-only.
 
 ## Run locally
 
@@ -93,4 +93,10 @@ Vercel runs the static frontend build; it does not run `server.py` or store SQLi
 4. Deploy `main`. `vercel.json` runs `npm run build` and publishes only `dist`. Missing cloud configuration fails the build explicitly. Python/local credentials and saved data are never deployed.
 5. Sign in. To transfer existing saves, run `python3 scripts/export_for_cloud.py` locally, then choose **Import local collection** in the signed-in cloud library and select `.capture-data/cloud-transfer.json`. The export includes reference text, source links, media URLs and JPEG previews, but no credentials, bookmark baseline IDs or assessments. It remains ignored by Git. Imports can be retried without duplicate cards.
 
-**Current boundary:** the online collection is private and persistent, but new website captures and automatic X bookmark checks still run through the existing local extension/server. Their later saves require another import to appear online. Moving capture delivery and scheduled X sync to the cloud is a separate follow-up; the cloud frontend must not claim those are running there. No X OAuth token or API spending control has been moved to Vercel.
+### Automatic delivery from this Mac
+
+`cloud-config.json` contains public Supabase project settings. For a different installation, point these to the same project as the cloud build; never use a secret key. Add the exact `http://127.0.0.1:8765/oauth/supabase/callback` to Supabase Auth's allowed redirect URLs. Open `/cloud` on the local library, enter the existing cloud account email, and open the new sign-in link on the same Mac. This uses a separate PKCE session; browser session tokens are not copied. The verified account is pinned to this local installation.
+
+Once connected, new captures and imported X bookmarks are automatically delivered while the local server runs. The SQLite delivery ledger survives restarts, fingerprints display fields/previews/media, and only acknowledges an item after both private-preview upload and record upsert succeed. Unchanged records produce no upload requests. Temporary failures retry with backoff up to 15 minutes; access errors stop delivery and ask for sign-in. `/cloud` shows pending/synced counts and pause/resume/retry controls. Session credentials are atomically written with owner-only permissions inside ignored `.capture-data`. Existing references are reconciled by their existing IDs, without duplicate cards. Fixtures, private assessments, X tokens and the historical bookmark exclusion baseline are excluded.
+
+Delivery is **one-way** from this Mac. Local recaptures update cloud copies; local deletion does not delete a cloud copy. Cloud browsing works independently, but new website captures and X bookmark detection still require the local extension/server. The existing X polling interval, exclusion baseline and spending limits are unchanged; cloud delivery itself makes no X API calls. Hosted background polling, mobile capture and two-way editing are separate future work.

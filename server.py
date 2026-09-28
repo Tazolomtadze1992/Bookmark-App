@@ -27,6 +27,7 @@ from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from x_media import motion_manifest, image_manifest, metadata_manifest
 from bookmark_sync import BookmarkSync, SyncError
+from cloud_sync import CloudSync, CloudError
 
 ROOT = Path(__file__).resolve().parent
 MAX_BODY = 5_000_000
@@ -221,6 +222,7 @@ class CaptureServer(ThreadingHTTPServer):
         self.store, self.token, self.sources = store, token, sources
         self.probe_lock = threading.Lock()
         self.bookmarks = BookmarkSync(store.directory, store, self.server_address[1])
+        self.cloud = CloudSync(store, self.server_address[1])
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -309,11 +311,23 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/embed.js":
                 return self.respond(200, (ROOT / "web/embed.js").read_bytes(), "text/javascript", embed=True)
             return self.json(403, {"error": "The widget origin cannot access the capture library."})
-        if path in {"/", "/index.html", "/lab"}:
+        if path in {"/", "/index.html", "/lab", "/cloud"}:
             if self.headers.get("Sec-Fetch-Site") == "cross-site" and self.headers.get("Sec-Fetch-Mode") != "navigate":
                 return self.json(403, {"error": "Cross-site read blocked."})
-            content = (ROOT / "web" / ("lab.html" if path == "/lab" else "index.html")).read_text().replace("__LOCAL_TOKEN__", html.escape(self.server.token, quote=True))
+            content = (ROOT / "web" / ("cloud.html" if path == "/cloud" else "lab.html" if path == "/lab" else "index.html")).read_text().replace("__LOCAL_TOKEN__", html.escape(self.server.token, quote=True))
             return self.respond(200, content.encode(), "text/html; charset=utf-8")
+        if path == "/oauth/supabase/callback":
+            try:
+                self.server.cloud.callback(dict(parse_qsl(urlsplit(self.path).query)))
+                self.send_response(303)
+                self.send_header("Location", "/cloud")
+                self.send_header("Cache-Control", "no-store")
+                self.send_header("Referrer-Policy", "no-referrer")
+                self.send_header("Content-Length", "0")
+                self.end_headers()
+                return
+            except CloudError as exc:
+                return self.respond(400, ('<p>'+html.escape(str(exc))+'</p><a href="/cloud">Reconnect</a>').encode(), "text/html; charset=utf-8")
         if path == "/oauth/x/callback":
             try:
                 self.server.bookmarks.callback_result(dict(parse_qsl(urlsplit(self.path).query)))
@@ -322,7 +336,7 @@ class Handler(BaseHTTPRequestHandler):
             except SyncError as exc:
                 content = '<p>' + html.escape(str(exc)) + '</p><a href="/">Return to Capture Lab</a>'
                 return self.respond(400, content.encode(), "text/html; charset=utf-8")
-        static = {"/app.js": ("app.js", "text/javascript"), "/style.css": ("style.css", "text/css"), "/lab.js": ("lab.js", "text/javascript"), "/lab.css": ("lab.css", "text/css")}
+        static = {"/cloud-local.js": ("cloud-local.js", "text/javascript"), "/app.js": ("app.js", "text/javascript"), "/style.css": ("style.css", "text/css"), "/lab.js": ("lab.js", "text/javascript"), "/lab.css": ("lab.css", "text/css")}
         icon = re.fullmatch(r"/icons/([a-z-]+)\.svg", path)
         if icon and (ROOT / "web/icons" / (icon.group(1) + ".svg")).is_file():
             return self.respond(200, (ROOT / "web/icons" / (icon.group(1) + ".svg")).read_bytes(), "image/svg+xml")
@@ -333,13 +347,15 @@ class Handler(BaseHTTPRequestHandler):
             return self.json(200, {"ok": True, "service": "capture-lab"})
         if not self.authorised():
             return self.json(401, {"error": "Not connected. Start the server, then reload the extension."})
+        if path == "/api/cloud/status":
+            return self.json(200, self.server.cloud.status())
         if path in {"/api/state", "/api/export"}:
             report_file = self.server.store.directory / "x-probe.json"
             probe = json.loads(report_file.read_text()) if report_file.exists() else None
             # Only summary goes to the viewer; full API payload stays in a private file.
             if probe:
                 probe = {k: v for k, v in probe.items() if k != "response"}
-            return self.json(200, {"exported_at": now(), "sources": self.server.sources, "captures": self.server.store.all(), "x_probe": probe, "motion": {**motion_manifest(report_file), **motion_manifest(self.server.bookmarks.media_path)}, "x_images": {**image_manifest(report_file), **image_manifest(self.server.bookmarks.media_path)}, "x_metadata": {**metadata_manifest(report_file), **metadata_manifest(self.server.bookmarks.media_path)}, "bookmarks": self.server.bookmarks.status(),
+            return self.json(200, {"exported_at": now(), "sources": self.server.sources, "captures": self.server.store.all(), "x_probe": probe, "motion": {**motion_manifest(report_file), **motion_manifest(self.server.bookmarks.media_path)}, "x_images": {**image_manifest(report_file), **image_manifest(self.server.bookmarks.media_path)}, "x_metadata": {**metadata_manifest(report_file), **metadata_manifest(self.server.bookmarks.media_path)}, "bookmarks": self.server.bookmarks.status(), "cloud_sync": self.server.cloud.status(),
                                    "note": "Controlled fixtures and owner observations are not live-source validation. Product cost is unmeasured."})
         match = re.fullmatch(r"/api/image/([a-f0-9]{32})", path)
         if match:
@@ -353,6 +369,14 @@ class Handler(BaseHTTPRequestHandler):
         try:
             body = self.read_body()
             path = urlsplit(self.path).path
+            if path.startswith("/api/cloud/"):
+                if self.headers.get("Origin") != f"http://127.0.0.1:{self.port}" or body.get("confirm") is not True:
+                    return self.json(403, {"error":"Use cloud controls in the local library."})
+                if path == "/api/cloud/connect":
+                    return self.json(200, self.server.cloud.connect(body.get("email")))
+                if path == "/api/cloud/control":
+                    return self.json(200, self.server.cloud.control(body.get("action")))
+                return self.json(404, {"error":"Unknown cloud action."})
             if path.startswith("/api/bookmarks/"):
                 if self.headers.get("Origin") != f"http://127.0.0.1:{self.port}":
                     return self.json(403, {"error": "Use bookmark controls in the local library."})
@@ -424,6 +448,7 @@ def main():
     print("Load the extension/ folder in Chrome after starting this server.")
     print("Paid reads require an explicit test or enabled bookmark sync. Keep this terminal open; Ctrl+C stops it.\n")
     server.bookmarks.start_worker()
+    server.cloud.start_worker()
     if not args.no_open:
         threading.Timer(0.5, lambda: webbrowser.open("http://127.0.0.1:8765")).start()
     try:
@@ -431,6 +456,7 @@ def main():
     except KeyboardInterrupt:
         print("\nStopped. Local captures remain in .capture-data/.")
     finally:
+        server.cloud.close()
         server.bookmarks.close()
         server.server_close()
         store.db.close()
