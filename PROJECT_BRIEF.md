@@ -1,6 +1,6 @@
 # Personal Reference Library — Project Brief
 
-**Version:** 0.24
+**Version:** 0.25
 **Updated:** September 28, 2026  
 **Owner:** Tazo Lomtadze  
 **Current stage:** Private cloud library with direct extension capture and hosted X checks. The local server is stopped. Historical exclusions and the spending counter are retained; recovery controls include Trash/restore, X reconnect and media refresh.
@@ -544,3 +544,16 @@ The owner reported two missing new X bookmarks. The enabled worker had last chec
 Inspection also found a schedule defect: the due gate used worker start time plus 900 seconds, while cron fires at exact quarter-hours. Startup jitter could make the next invocation too early and skip a check. Migration 20260928165601 aligns the gate to the next quarter-hour and corrects enabled idle workers without resetting spending. A rollback-only database check exercised the actual claim function and confirmed a future boundary divisible by 900 and no more than 900 seconds away. No paid request was made by that fixture. The real scheduled 17:00 UTC invocation then completed successfully with zero new posts; reservations reached 1,330 units of 3,000.
 
 The footer and Connections status now display the next check in the browser's local time. Checks remain periodic rather than instant; the existing “Check X now” action allows an immediate bounded check. Frontend syntax/build checks passed. Long-duration reliability and provider-outage recovery remain unproven.
+
+
+## 29. Complete X media albums — September 28, 2026
+
+The owner reported that a four-image post displayed only one image and supplied a recent.design recording showing horizontally arranged images with adjacent previews. The hosted projection selected only the first media key even though the existing official lookup expanded all attachments. It now stores every attachment in source order in the existing private metadata JSON, retaining legacy first-image/video fields for compatible grid covers. Missing media retain an unavailable slot; image and video hosts remain allowlisted. No schema or permission expansion was required. New imported posts and explicitly refreshed posts use the complete album. Older records remain compatible; only the reported post was refreshed, without bulk paid backfill.
+
+Cards now display the attachment count. Expanded albums use original proportions, native horizontal scrolling and snap, neighboring-image previews, separate 44px previous/next image controls, a position counter and keyboard navigation within the gallery. Existing sidebar arrows continue to move between posts. Favorites, categories and grid playback/sound controls were not reintroduced. Videos retain muted autoplay and reduced-motion handling.
+
+**Real verification:** Refreshed post 2103477761352544605 once through the existing owner-authorized, budget-limited hosted endpoint. Supabase contains four photo attachments with dimensions 1318×1866, 1322×1723, 1322×1723 and 1012×1547. Production showed a 4-item badge; opened all four slots, observed the original second/fourth images, verified the terminal disabled Next button, then checked the final adjacent-image layout and keyboard movement from 2/4 to 3/4. Next-reference navigation opened the existing playing-card video and Previous returned to the album. Actual desktop screenshots were inspected through the browser; a final persistent screenshot could not be saved because the Mac locked. No mock media were inserted into the real collection. Mobile touch behavior and mixed-video albums were not live tested.
+
+**Controlled verification:** 16 JavaScript tests passed, including unordered API includes mapped back to all four attachment keys, missing/unsafe media slots, mixed image/video projection and existing import/queue guards. JavaScript syntax, cloud build and diff checks passed. Mixed-media and failure cases are controlled fixtures, not real-source browser proof. Edge Function library-service version 2 and GitHub/Vercel commits c7578b7 / a8f749d contain the implementation.
+
+**Costs:** The same post lookup returns all attachment objects using attachments.media_keys expansion. This is one post resource, not four post lookups. X's public pricing currently lists Post Read at $0.005 and User Read at $0.010; the app retains its conservative 15-unit reservation per enriched post, separate from bookmark-list checks. Author expansions and provider deduplication affect actual billing, so this is not a measured total invoice cost. Browsing stored album links makes no paid X API request. Current official references: https://docs.x.com/x-api/getting-started/pricing and https://docs.x.com/x-api/fundamentals/expansions.
