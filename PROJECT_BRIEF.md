@@ -591,3 +591,10 @@ Navigation now adapts shadcn/ui's small ghost/secondary Button styles to the exi
 Previously Inter was only named in the font stack. Bundled official Inter 4.1 normal and italic variable WOFF2 fonts from rsms/inter, including the SIL Open Font License. Added weight range 100–900, optical sizing, swap display, same-origin font preload, local-server font routes and cloud-build copying. The production CSP allows same-origin fonts. Included shadcn's MIT license for the adapted styling.
 
 Validation: cloud build and diff checks passed. Both deployed fonts return HTTP 200 with font/woff2 and valid WOFF2 headers. Live browser inspection confirmed the compact header, loaded website previews, section switching, and keyboard Tab/Enter navigation with visible focus. Physical touch target testing was not performed.
+
+
+## 34. Rounded shared navigation pill — September 28, 2026
+
+Inspected the owner's 7.7-second recording as a contact sheet and a 15-fps cropped navigation sequence. Matched the single pale pill moving between hovered labels, returning to the current selection on pointer exit, and retaining the clicked selection. Restored fully rounded buttons, kept the existing active surface color for both hover and selection, removed nav counts and their update code, and removed per-button hover darkening and press scaling. The shared layer uses an interruptible 180ms clip-path transition; labels remain stationary. Font/resize changes reposition without animation. Keyboard interactions and reduced-motion preference snap immediately, and touch does not trigger mouse hover.
+
+Validation: JavaScript syntax, cloud build and diff checks passed. Live production browser checks confirmed count-free rounded labels, hover highlight on Websites while X remained selected, return to X on pointer exit, click selection of Websites, and Shift-Tab/Enter selection of X. Reduced-motion and physical touch behavior were reviewed in code but not exercised with OS/device settings in this pass. No paid X requests or collection mutations were triggered.
