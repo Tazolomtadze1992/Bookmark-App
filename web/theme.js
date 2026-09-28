@@ -9,8 +9,9 @@
   function apply() {
     document.documentElement.dataset.theme = preference === 'system'
       ? (system.matches ? 'dark' : 'light') : preference;
-    const select = document.getElementById('theme-choice');
-    if (select) select.value = preference;
+    for (const button of document.querySelectorAll('[data-theme-choice]')) {
+      button.setAttribute('aria-pressed', String(button.dataset.themeChoice === preference));
+    }
   }
   apply();
   system.addEventListener('change', apply);
@@ -22,8 +23,8 @@
   });
   document.addEventListener('DOMContentLoaded', () => {
     apply();
-    document.getElementById('theme-choice')?.addEventListener('change', event => {
-      preference = normalize(event.target.value);
+    for (const button of document.querySelectorAll('[data-theme-choice]')) button.addEventListener('click', () => {
+      preference = normalize(button.dataset.themeChoice);
       try { localStorage.setItem(key, preference); } catch {}
       apply();
     });

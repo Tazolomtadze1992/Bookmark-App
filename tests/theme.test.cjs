@@ -4,12 +4,14 @@ const {readFileSync}=require('node:fs');
 const {runInNewContext}=require('node:vm');
 const source=readFileSync('web/theme.js','utf8');
 function load(saved,dark=false,blocked=false){
- const events={},dom={},media={},select={value:'',addEventListener:(k,fn)=>dom[k]=fn},root={dataset:{}};
+ const events={},dom={},media={},root={dataset:{}};
+ const buttons=['system','light','dark'].map(value=>({dataset:{themeChoice:value},pressed:'false',setAttribute(k,v){this.pressed=v;},addEventListener(k,fn){this.click=fn;}}));
+ const select={get value(){return buttons.find(b=>b.pressed==='true')?.dataset.themeChoice;}};
  const storage={value:saved,getItem(){if(blocked)throw Error('blocked');return this.value;},setItem(k,v){if(blocked)throw Error('blocked');this.value=v;}};
  const system={matches:dark,addEventListener:(k,fn)=>media[k]=fn};
- const document={documentElement:root,getElementById:()=>select,addEventListener:(k,fn)=>dom[k]=fn};
+ const document={documentElement:root,querySelectorAll:()=>buttons,addEventListener:(k,fn)=>dom[k]=fn};
  runInNewContext(source,{document,matchMedia:()=>system,localStorage:storage,addEventListener:(k,fn)=>events[k]=fn});
- dom.DOMContentLoaded();return{events,dom,select,root,storage,system,media};
+ dom.DOMContentLoaded();dom.change=event=>buttons.find(b=>b.dataset.themeChoice===event.target.value).click();return{events,dom,select,root,storage,system,media};
 }
 test('system default follows OS changes, explicit choice persists and resists OS changes',()=>{
  const t=load(null,true);assert.equal(t.root.dataset.theme,'dark');assert.equal(t.select.value,'system');

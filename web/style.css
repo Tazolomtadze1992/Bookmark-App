@@ -96,6 +96,10 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,.u
 .motion-controls img{filter:invert(1)}
 .cloud-login input{background:var(--surface)}
 .cloud-login button{background:var(--ink);color:var(--inverse)}
-.theme-setting{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:8px 0;padding:8px 12px;border-block:1px solid var(--line);font-size:14px}
-.theme-setting select{min-height:44px;padding:8px 10px;background:var(--soft);border:1px solid var(--line);border-radius:8px;font:inherit;cursor:pointer}
+.theme-setting{min-width:0;margin:14px 12px 10px;padding:0;border:0;font-size:14px}
+.theme-setting legend{padding:0;margin-bottom:8px;color:var(--muted)}
+.theme-options{display:flex;gap:4px;padding:4px;background:var(--soft);border-radius:10px}
+.theme-options button{flex:1;min-height:44px;padding:8px;border-radius:7px;font-size:13px;color:var(--muted)}
+.theme-options button:hover{background:var(--hover)}
+.theme-options button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:var(--surface-ring)}
 @media(hover:hover) and (pointer:fine){.tab:hover,.account-menu>summary:hover{background:var(--hover)}.tab.active:hover{background:var(--selected)}}
