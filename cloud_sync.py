@@ -119,7 +119,8 @@ class CloudSync:
         enabled = self.session.get('enabled', True)
         self.session = {'access_token':result['access_token'], 'refresh_token':result['refresh_token'],
                         'expires_at':time.time()+int(result.get('expires_in', 3600)),
-                        'user_id':uid, 'email':user_email, 'enabled':enabled}
+                        'user_id':uid, 'email':user_email, 'enabled':enabled,
+                        'cloud_migrated':bool(self.session.get('cloud_migrated'))}
         atomic_json(self.path, self.session)
         self.auth_error = False
 

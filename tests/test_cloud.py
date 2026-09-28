@@ -90,3 +90,10 @@ class CloudTests(unittest.TestCase):
         self.assertEqual(read_json(self.cloud.path)['access_token'],'new')
     def test_status_never_contains_credentials_or_email(self):
         encoded=json.dumps(self.cloud.status());self.assertNotIn('fake-',encoded);self.assertNotIn('owner@example',encoded)
+    def test_cloud_handoff_blocks_legacy_writes_and_survives_session_refresh(self):
+        self.save();self.cloud.session['cloud_migrated']=True
+        with self.assertRaises(CloudError):self.cloud.control('resume')
+        self.cloud.cycle();self.assertEqual(self.calls,[])
+        self.cloud.request.side_effect=lambda *a,**k:{'id':UID,'email':'owner@example.com','email_confirmed_at':'date'}
+        self.cloud.accept_token({'access_token':'rotated','refresh_token':'rotated-refresh'},'owner@example.com')
+        self.assertTrue(self.cloud.session['cloud_migrated'])

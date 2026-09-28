@@ -23,6 +23,12 @@ class BookmarkTests(unittest.TestCase):
         self.store.db.close();self.temp.cleanup()
     def ready(self, old=('100','90')):
         self.sync.state.update(phase='ready',ready_at=time.time(),baseline_ids=list(old),anchors=list(old),user_id='123',account_verified=True)
+    def test_cloud_handoff_blocks_local_paid_checks(self):
+        self.ready();self.sync.state["cloud_migrated"]=True
+        with patch.object(self.sync,"get") as request:
+            with self.assertRaises(SyncError):self.sync.control("enable")
+            with self.assertRaises(SyncError):self.sync.sync_once()
+            request.assert_not_called()
     def test_baseline_never_imports_and_only_keeps_ids(self):
         with patch.object(self.sync,'get',side_effect=[{'data':{'id':'123','username':'controlled'}}, page(['100','90'],'next'),page(['80'])]):
             self.sync.baseline()
