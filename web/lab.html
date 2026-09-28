@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="local-token" content="__LOCAL_TOKEN__"><link rel="icon" href="/icons/bookmark-simple.svg" type="image/svg+xml"><title>Reference Capture Lab</title><link rel="stylesheet" href="/lab.css"><script type="module" src="/lab.js"></script></head>
+<body><main><a href="/">Back to library</a>
+<header><p class="eyebrow">REFERENCE LIBRARY · M1 / TECHNICAL TEST</p><h1>Does saving actually work?</h1><p class="intro">Save a page with the Chrome extension. Check the preview, reopen the source, and assess motion separately. This is a test bench—not the product design.</p></header>
+<aside class="notice"><strong>Private, local test.</strong> Captures stay on this computer. The extension captures only when invoked. Loading an X embed contacts X; it does not archive a video. Paid reads run through the five-post test or explicitly enabled bookmark sync. Native previews contact X’s media servers.</aside>
+<section aria-labelledby="setup-title"><details><summary id="setup-title">First-time setup</summary><ol><li>Keep <code>python3 server.py</code> running in Terminal.</li><li>In <code>chrome://extensions</code>, enable Developer mode, choose <strong>Load unpacked</strong>, and select this project's <code>extension</code> folder.</li><li>Pin <strong>Reference Capture Lab</strong>. Open one source below and click the extension once. For X, open the individual post and keep its media visible.</li></ol><p>Right-click the extension icon to open this page or retry queued saves. This test captures the currently visible page, not an entire site or a screen recording.</p></details></section>
+<section><details id="motion-setup"><summary>X autoplay test · five saved posts</summary>
+<p>One paid lookup, no automatic retries. The token is sent only to this local server and X’s official API, and is not saved. Set an X spending cap before running.</p>
+<form id="motion-form"><label for="bearer">X app bearer token</label> <input id="bearer" type="password" autocomplete="off" spellcheck="false" required maxlength="4096"><button id="run-probe" type="submit">Run five-post test</button></form>
+<p id="motion-status" role="status"></p></details></section>
+<section><details id="bookmark-setup"><summary>X bookmarks · new saves only</summary>
+<p>One-time connection. Existing bookmarks become an exclusion list, never library cards. Start bookmarking new references after the starting point is ready. This first test pauses after a server restart.</p>
+<form id="bookmark-connect"><label for="x-client-id">OAuth 2.0 Client ID</label> <input id="x-client-id" autocomplete="off" required maxlength="256"><button>Connect X read-only</button></form>
+<p>Authorize bookmark, post and profile reads plus staying connected. Tokens stay in private local files; they are not exported. No permission to post, message, or change X bookmarks.</p>
+<p>Callback: <code id="bookmark-callback">http://127.0.0.1:8765/oauth/x/callback</code></p>
+<div class="actions"><button id="bookmark-baseline">Establish starting point</button><button id="bookmark-check">Check new bookmarks</button><button id="bookmark-enable">Enable 15-minute sync</button><button id="bookmark-pause">Pause sync</button></div>
+<p id="bookmark-status" role="status">Loading bookmark status…</p>
+<p>Initial baseline: at most 500 bookmark IDs; no old previews or cards. Sync pauses if the baseline is incomplete or changes are ambiguous. The local test stops at a conservative $3 request allowance; this is an estimate, not your X bill. Your provider's $5 cap remains separate.</p>
+</details></section>
+<section aria-labelledby="source-title"><div class="section-head"><h2 id="source-title">Your eight test sources</h2><span id="progress">Loading…</span></div><div id="sources" class="source-list"></div></section>
+<section aria-labelledby="captures-title"><div class="section-head"><h2 id="captures-title">Captured references</h2><div class="actions"><button id="refresh">Refresh</button><button id="export">Export test results</button></div></div><p id="status" role="status" aria-live="polite"></p><div id="captures" class="captures"></div></section>
+<footer><p>Successful screenshot ≠ recognisable reference ≠ working motion. Assessment controls are optional test evidence, not fields required to save. <span id="probe-status"></span></p></footer>
+</main></body></html>

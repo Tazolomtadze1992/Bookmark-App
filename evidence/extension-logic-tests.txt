@@ -1,0 +1,40 @@
+TAP version 13
+# Subtest: source persisted before screenshot; no mandatory metadata input
+ok 1 - source persisted before screenshot; no mandatory metadata input
+  ---
+  duration_ms: 4.087277
+  type: 'test'
+  ...
+# Subtest: offline capture stays queued with preview
+ok 2 - offline capture stays queued with preview
+  ---
+  duration_ms: 1.1772
+  type: 'test'
+  ...
+# Subtest: tab switch prevents capturing the wrong page
+ok 3 - tab switch prevents capturing the wrong page
+  ---
+  duration_ms: 0.91176
+  type: 'test'
+  ...
+# Subtest: missing post is source-only, not screenshot success
+ok 4 - missing post is source-only, not screenshot success
+  ---
+  duration_ms: 1.322263
+  type: 'test'
+  ...
+# Subtest: timeline is rejected before source collection
+ok 5 - timeline is rejected before source collection
+  ---
+  duration_ms: 0.907834
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 55.407558

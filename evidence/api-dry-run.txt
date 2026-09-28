@@ -1,0 +1,5 @@
+Scope: five supplied X posts; one GET request; no automatic retries or video downloads.
+Mode: post + author + media expansions
+DRY RUN: no network call, no token read, no spend.
+Check X pricing and configure a provider-side spending cap before using --execute.
+Token will be requested privately in Terminal; do not paste it into chat.

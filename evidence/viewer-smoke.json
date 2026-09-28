@@ -1,0 +1,50 @@
+{
+  "scope": "Controlled DOM rendering with MOCKED fetch, simulated location and generated fixtures. Not an integration test.",
+  "browser_restrictions": "Unpacked extensions and local URL navigation blocked by administrator policy; no bypass attempted.",
+  "real_source_captures": 0,
+  "extension_action_verified": false,
+  "paid_api_calls": 0,
+  "live_x_playback_verified": false,
+  "tests": [
+    {
+      "test": "Website extraction function",
+      "status": "passed",
+      "detail": "Title and description read from a controlled document; simulated location, no live navigation or extension permissions."
+    },
+    {
+      "test": "Image storage",
+      "status": "passed",
+      "detail": "Renderer-created JPEG stored successfully; chrome.tabs.captureVisibleTab is not tested."
+    },
+    {
+      "test": "Exact-post extraction function",
+      "status": "passed",
+      "detail": "Controlled X-shaped DOM yields an author and media crop. No real X content or video playback was inspected."
+    },
+    {
+      "test": "Viewer renders controlled previews",
+      "status": "passed",
+      "detail": "Mock API returns actual fixture JPEGs. All eight user-supplied sources remain not captured."
+    },
+    {
+      "test": "Assessment UI",
+      "status": "passed",
+      "detail": "Selection updates mocked data; server persistence covered by the separate Python tests."
+    },
+    {
+      "test": "Export UI",
+      "status": "passed",
+      "detail": "Export contains mock fixture records and actual source IDs without the local token."
+    },
+    {
+      "test": "Untrusted title rendering",
+      "status": "passed",
+      "detail": "Source markup is displayed as text, not executable HTML."
+    },
+    {
+      "test": "Delete UI",
+      "status": "passed",
+      "detail": "Confirmed deletion updates the mocked capture list; real deletion covered separately."
+    }
+  ]
+}

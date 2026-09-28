@@ -1,0 +1,38 @@
+test_authenticated_save_and_read (test_lab.HTTPTests.test_authenticated_save_and_read) ... ok
+test_cross_site_origin_is_denied (test_lab.HTTPTests.test_cross_site_origin_is_denied) ... ok
+test_dns_rebinding_host_is_denied (test_lab.HTTPTests.test_dns_rebinding_host_is_denied) ... ok
+test_path_traversal_not_served (test_lab.HTTPTests.test_path_traversal_not_served) ... ok
+test_response_sets_no_store_and_frame_protection (test_lab.HTTPTests.test_response_sets_no_store_and_frame_protection) ... ok
+test_unauthenticated_read_is_denied (test_lab.HTTPTests.test_unauthenticated_read_is_denied) ... ok
+test_widget_origin_cannot_read_private_state (test_lab.HTTPTests.test_widget_origin_cannot_read_private_state) ... ok
+test_widget_page_does_not_contain_local_token (test_lab.HTTPTests.test_widget_page_does_not_contain_local_token) ... ok
+test_basic_omits_extra_resources (test_lab.ProbeTests.test_basic_omits_extra_resources) ... ok
+test_fixed_official_endpoint_and_ids (test_lab.ProbeTests.test_fixed_official_endpoint_and_ids) ... ok
+test_no_numeric_id_precision_loss (test_lab.ProbeTests.test_no_numeric_id_precision_loss) ... ok
+test_assessment_is_explicit (test_lab.StoreTests.test_assessment_is_explicit) ... ok
+test_bad_assessment_rejected (test_lab.StoreTests.test_bad_assessment_rejected) ... ok
+test_delete_removes_preview (test_lab.StoreTests.test_delete_removes_preview) ... ok
+test_duplicate_updates_single_record (test_lab.StoreTests.test_duplicate_updates_single_record) ... ok
+test_malformed_preview_rejected (test_lab.StoreTests.test_malformed_preview_rejected) ... ok
+test_playback_not_inferred_from_screenshot (test_lab.StoreTests.test_playback_not_inferred_from_screenshot) ... ok
+test_source_saved_without_preview (test_lab.StoreTests.test_source_saved_without_preview) ... ok
+test_query_order_preserved_conservatively (test_lab.URLTests.test_query_order_preserved_conservatively) ... ok
+test_tracking_removal_retains_meaningful_data (test_lab.URLTests.test_tracking_removal_retains_meaningful_data) ... ok
+test_twitter_alias_deduplicates (test_lab.URLTests.test_twitter_alias_deduplicates) ... ok
+test_unsafe_urls_rejected (test_lab.URLTests.test_unsafe_urls_rejected) ... ok
+test_x_identity_retained_as_string (test_lab.URLTests.test_x_identity_retained_as_string) ... ok
+
+----------------------------------------------------------------------
+Ran 23 tests in 0.544s
+
+OK
+[local] POST /api/captures 200
+[local] GET /api/state 200
+[local] POST /api/captures 403
+[local] GET /api/state 403
+[local] GET /../server.py 404
+[local] GET /api/state 200
+[local] GET /api/state 401
+[local] GET /api/state 403
+[local] GET / 403
+[local] GET /embed/123 200

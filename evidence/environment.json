@@ -1,0 +1,11 @@
+{
+  "checked_on": "2026-09-28",
+  "external_http": "DNS resolution failed in runtime",
+  "chrome_extension_policy": "Loading of unpacked extensions is disabled by the administrator.",
+  "chrome_local_navigation": "ERR_BLOCKED_BY_ADMINISTRATOR",
+  "policy_changes_attempted": false,
+  "real_source_captures": 0,
+  "paid_api_calls": 0,
+  "actual_extension_action_verified": false,
+  "actual_billing_usd": null
+}

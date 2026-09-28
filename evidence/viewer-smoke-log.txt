@@ -1,0 +1,9 @@
+PASS: Website extraction function
+PASS: Image storage
+PASS: Exact-post extraction function
+PASS: Viewer renders controlled previews
+PASS: Assessment UI
+PASS: Export UI
+PASS: Untrusted title rendering
+PASS: Delete UI
+Controlled rendering checks passed: 8
