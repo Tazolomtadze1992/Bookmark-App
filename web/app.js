@@ -28,6 +28,7 @@ function albumItems(item){return metadata(item).media||[];}
 function albumPreview(item){
  const attachments=albumItems(item),gallery=el('section',null,'album-gallery'),track=el('div',null,'album-track'),controls=el('div',null,'album-controls');
  gallery.setAttribute('aria-label','Post media gallery');track.tabIndex=0;track.setAttribute('aria-label','Images and videos. Use left and right arrows to browse.');
+ const ratio=m=>m.width>0&&m.height>0?m.width/m.height:1;gallery.style.setProperty('--first-ratio',ratio(attachments[0]));gallery.style.setProperty('--last-ratio',ratio(attachments.at(-1)));
  let current=0;const slides=[];
  const counter=el('span',null,'album-counter');counter.setAttribute('role','status');counter.setAttribute('aria-live','polite');
  const previous=iconButton('arrow-left','Previous image',()=>go(current-1));
@@ -35,7 +36,7 @@ function albumPreview(item){
  function update(){counter.textContent=`${current+1} / ${attachments.length}`;previous.disabled=current===0;next.disabled=current===attachments.length-1;}
  function go(index){const target=slides[Math.max(0,Math.min(slides.length-1,index))];track.scrollTo({left:target.offsetLeft-(track.clientWidth-target.offsetWidth)/2,behavior:'instant'});}
  for(const [index,media] of attachments.entries()){
-  const slide=el('div',null,'album-slide');slide.setAttribute('role','group');slide.setAttribute('aria-label',`Media ${index+1} of ${attachments.length}`);
+  const slide=el('div',null,'album-slide');slide.style.setProperty('--media-ratio',ratio(media));slide.setAttribute('role','group');slide.setAttribute('aria-label',`Media ${index+1} of ${attachments.length}`);
   if(media.motion)slide.append(motionPreview(item,media.motion,'detail',media.poster));
   else if(media.poster){const img=el('img',null,'media media-image');img.src=media.poster;img.alt=media.alt||`Image ${index+1} of ${attachments.length} — ${shortTitle(item)}`;img.loading=index===0?'eager':'lazy';if(media.width&&media.height){img.width=media.width;img.height=media.height;}img.addEventListener('error',()=>img.replaceWith(el('p','Image unavailable. Open the original post.','text-preview')),{once:true});slide.append(img);}
   else slide.append(el('p','Media unavailable. Open the original post.','text-preview'));
