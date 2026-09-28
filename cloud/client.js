@@ -20,7 +20,7 @@ const verified=await db.auth.getUser();
 if(verified.error||!verified.data.user){await db.auth.signOut({scope:'local'});location.replace('/');throw Error('Sign in again to continue.');}
 user=verified.data.user;
 login.remove();main.hidden=false;document.querySelector('nav').hidden=false;labLink.hidden=false;document.querySelector('.account-menu').hidden=false;document.querySelector('.search').hidden=false;
-labLink.textContent='Sign out';labLink.href='#';labLink.addEventListener('click',async e=>{e.preventDefault();const {error}=await db.auth.signOut({scope:'local'});if(error){document.querySelector('#status').textContent=error.message;return;}location.replace('/');});
+labLink.textContent='Sign out';labLink.setAttribute('aria-label','Sign out');labLink.href='#';labLink.addEventListener('click',async e=>{e.preventDefault();const {error}=await db.auth.signOut({scope:'local'});if(error){document.querySelector('#status').textContent=error.message;return;}location.replace('/');});
 personalLabel.textContent='Private · Saved in your account';
 const reply=data=>new Response(JSON.stringify(data),{headers:{'Content-Type':'application/json'}});
 const remoteMedia=(value,host)=>{try{const u=new URL(value);return u.protocol==='https:'&&u.hostname===host&&!u.username&&!u.password&&(!u.port||u.port==='443')?u.href:null;}catch{return null;}};
@@ -57,10 +57,10 @@ async function cloudRequest(path,body={}){
  const data=await r.json();if(!r.ok)throw Error(data.error||'Cloud connection failed.');return data;
 }
 const tools=document.createElement('details');tools.className='cloud-tools';
-const summary=document.createElement('summary');summary.textContent='Connections & Trash';
+const summary=document.createElement('summary');summary.textContent='Connections & Trash';summary.setAttribute('aria-label','Connections & Trash');
 const panel=document.createElement('div');panel.className='cloud-panel';
 const report=document.createElement('p');report.setAttribute('role','status');
-function action(label,fn){const button=document.createElement('button');button.type='button';button.textContent=label;button.addEventListener('click',async()=>{button.disabled=true;try{await fn();}catch(e){report.textContent=e.message;}finally{button.disabled=false;}});button.className='menu-item';panel.append(button);return button;}
+function action(label,fn){const button=document.createElement('button');button.type='button';button.textContent=label;button.setAttribute('aria-label',label);button.addEventListener('click',async()=>{button.disabled=true;try{await fn();}catch(e){report.textContent=e.message;}finally{button.disabled=false;}});button.className='menu-item';panel.append(button);return button;}
 async function connectionStatus(){const status=await cloudRequest('/status');report.textContent=status?`${status.enabled?'X checks on':'X checks paused'} · ${status.message}${status.enabled&&status.next_check?' Next scheduled check: '+new Date(status.next_check*1000).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})+'.':''} · $${((status.reserved_units||0)/1000).toFixed(3)} of $3 allowance reserved (conservative estimate).`:'X cloud connection is not ready yet.';}
 action('Connect extension',async()=>{
  if(document.documentElement.dataset.libraryExtension!=='cloud-v1')throw Error('Reload the updated Reference Library extension in Chrome, then reload this page.');
