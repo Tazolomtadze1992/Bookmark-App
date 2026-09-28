@@ -153,3 +153,12 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,.u
 .topbar .search,.topbar .account-menu>summary{border:0;box-shadow:var(--shadow-border);transition:box-shadow 150ms ease-out,background-color 140ms ease,transform 120ms ease}
 @media(hover:hover) and (pointer:fine){.topbar .search:hover,.topbar .account-menu>summary:hover{box-shadow:var(--shadow-border-hover)}}
 @media(prefers-reduced-motion:reduce){.topbar .search,.topbar .account-menu>summary{transition:none}}
+
+/* Original interactive oscilloscope mark and a compact utility group. */
+.topbar .wave-mark{position:relative;display:block;width:44px;height:44px;flex:0 0 44px;min-width:44px;line-height:0;border-radius:10px;color:var(--ink)}
+.wave-mark canvas,.wave-mark svg{position:absolute;inset:0;display:block;width:44px;height:44px;pointer-events:none}
+.wave-mark canvas{visibility:hidden}.wave-mark.brand-ready canvas{visibility:visible}.wave-mark.brand-ready svg{visibility:hidden}
+.header-tools{display:flex;align-items:center;gap:12px;margin-left:auto;min-width:0}
+.topbar .header-tools .search{margin-left:0}
+.topbar .header-tools .account-menu{margin-left:0}
+@media(max-width:760px){.topbar{min-height:0;gap:12px;flex-wrap:wrap}.topbar .wave-mark{order:0}.topbar nav{order:1;width:auto;margin-left:auto}.header-tools{order:2;flex-basis:100%;width:100%;margin-left:0}.topbar .header-tools .search{order:0;flex:1;min-width:0;width:auto;flex-basis:auto}.topbar .header-tools .account-menu{order:1}}
