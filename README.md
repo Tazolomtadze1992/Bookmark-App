@@ -82,3 +82,15 @@ node --check web/app.js
 Node is needed only for those JavaScript checks. They use mocked extension APIs and do not make paid X requests. Optional Playwright smoke scripts require additional browser tooling and are historical Capture Lab checks; they are not necessary to run the app. Extension installation and real playback must be checked in an authorized browser rather than inferred from mocked tests.
 
 Icons in `web/icons` are vendored Phosphor assets; their license is included alongside them.
+
+## Vercel and private cloud library
+
+Vercel runs the static frontend build; it does not run `server.py` or store SQLite. The first import of this local-only repository produced a 404 because it had no root web entry point or configured build output.
+
+1. Create a Supabase project. Run the versioned schema in `supabase/migrations` on a new project. It creates an owner-scoped references table and a private JPEG-preview bucket. Row Level Security must stay enabled; anonymous reads are not granted.
+2. Set the Supabase Auth Site URL to the exact production Vercel URL. The current sign-in flow uses emailed magic links; default SMTP delivery is limited by Supabase, so use an allowed team email during this private trial.
+3. Set Vercel **Production** configuration variables `PUBLIC_SUPABASE_URL` and `PUBLIC_SUPABASE_PUBLISHABLE_KEY`. Use a `sb_publishable_` key, never a secret or service-role key.
+4. Deploy `main`. `vercel.json` runs `npm run build` and publishes only `dist`. Missing cloud configuration fails the build explicitly. Python/local credentials and saved data are never deployed.
+5. Sign in. To transfer existing saves, run `python3 scripts/export_for_cloud.py` locally, then choose **Import local collection** in the signed-in cloud library and select `.capture-data/cloud-transfer.json`. The export includes reference text, source links, media URLs and JPEG previews, but no credentials, bookmark baseline IDs or assessments. It remains ignored by Git. Imports can be retried without duplicate cards.
+
+**Current boundary:** the online collection is private and persistent, but new website captures and automatic X bookmark checks still run through the existing local extension/server. Their later saves require another import to appear online. Moving capture delivery and scheduled X sync to the cloud is a separate follow-up; the cloud frontend must not claim those are running there. No X OAuth token or API spending control has been moved to Vercel.

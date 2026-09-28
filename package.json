@@ -1,0 +1,8 @@
+{
+  "name": "bookmark-app",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {"build": "node scripts/build-cloud.mjs", "test": "node --test tests/extension_logic.test.cjs"},
+  "dependencies": {"@supabase/supabase-js": "2.117.2"},
+  "devDependencies": {"esbuild": "0.28.2"}
+}
