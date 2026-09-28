@@ -1,6 +1,6 @@
 # Personal Reference Library — Project Brief
 
-**Version:** 0.23
+**Version:** 0.24
 **Updated:** September 28, 2026  
 **Owner:** Tazo Lomtadze  
 **Current stage:** Private cloud library with direct extension capture and hosted X checks. The local server is stopped. Historical exclusions and the spending counter are retained; recovery controls include Trash/restore, X reconnect and media refresh.
@@ -535,3 +535,12 @@ The owner approved adding the exact Supabase callback to the existing Native App
 Supabase security advisors found no new exposed-table/access warning; three private service-only tables intentionally have RLS with no browser policies. The pre-existing password-protection warning concerns password sign-ins; this library uses email links. References: https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy and https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection.
 
 Final verification: the real `library-x-checks` cron job ran successfully at 16:45:00 UTC, and the hosted X check completed at 16:45:02 with zero new posts, while port 8765 had no listener. The reservation reached 1,200 units ($1.200 conservative estimate), with checks enabled and all eight historical exclusions intact. This is a real scheduled invocation, not a manual call to the scheduler endpoint. Final regression results: **77 Python tests + 14 JavaScript controlled tests passed**. Successive live screenshots showed advancing saved-source video frames; the refreshed Edoardo card also gained its returned author avatar. Evidence: `capture-evidence/hosted-cloud-library.png`; it was captured just before the scheduled check and therefore shows the earlier $1.150 reservation.
+
+
+## 28. New-bookmark delay and schedule alignment — September 28, 2026
+
+The owner reported two missing new X bookmarks. The enabled worker had last checked at 16:45 UTC (20:45 Tbilisi), with budget remaining. A real manual hosted check at 16:55 UTC imported both: “reports, papers, posters” (post 2103477761352544605, photo) and “That's how I made the pattern on these playing cards” (post 2103592367206838759, playable video). The database and live production browser confirmed 8 X references and 6 websites, 14 total. This is a positive real-source hosted import, superseding section 27's untested-positive-import limitation. Historical exclusions remain intact.
+
+Inspection also found a schedule defect: the due gate used worker start time plus 900 seconds, while cron fires at exact quarter-hours. Startup jitter could make the next invocation too early and skip a check. Migration 20260928165601 aligns the gate to the next quarter-hour and corrects enabled idle workers without resetting spending. A rollback-only database check exercised the actual claim function and confirmed a future boundary divisible by 900 and no more than 900 seconds away. No paid request was made by that fixture. The real scheduled 17:00 UTC invocation then completed successfully with zero new posts; reservations reached 1,330 units of 3,000.
+
+The footer and Connections status now display the next check in the browser's local time. Checks remain periodic rather than instant; the existing “Check X now” action allows an immediate bounded check. Frontend syntax/build checks passed. Long-duration reliability and provider-outage recovery remain unproven.
