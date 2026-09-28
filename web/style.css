@@ -121,3 +121,13 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,.u
 .topbar .tab:disabled{pointer-events:none;opacity:.5}
 @media(min-width:761px){.topbar{height:64px;min-height:64px}.topbar .search{min-height:36px;padding-block:6px}.account-menu>summary{min-width:36px;min-height:36px;padding:7px;position:relative}.account-menu>summary::after{content:'';position:absolute;inset:-4px}.account-menu>summary img{width:20px;height:20px}}
 @media(pointer:coarse){.topbar .tab{min-height:44px;height:44px}.topbar .tab::after{inset:0}.account-menu>summary{min-width:44px;min-height:44px}.account-menu>summary::after{inset:0}}
+
+/* Shared rounded navigation highlight, matching the supplied motion reference. */
+.topbar nav{position:relative;isolation:isolate}
+.topbar .nav-highlight{position:absolute;inset:0;z-index:-1;background:var(--soft);pointer-events:none;clip-path:inset(0 100% 0 0 round 999px)}
+.topbar .tab{border-radius:999px;transition:none}
+.topbar .tab:active{transform:none}
+.topbar .tab:hover{background:transparent}
+.topbar nav.has-highlight .tab.active{background:transparent}
+.topbar .tab:focus-visible{border-radius:999px}
+@media(prefers-reduced-motion:reduce){.topbar .nav-highlight{transition:none!important}}
