@@ -7,7 +7,7 @@ if(!/^https:\/\/[a-z0-9]+\.supabase\.co$/.test(url)) throw new Error('Expected t
 if(!key.startsWith('sb_publishable_')) throw new Error('Use a publishable key, never a secret or service-role key.');
 await rm('dist',{recursive:true,force:true});
 await mkdir('dist',{recursive:true});
-for(const name of ['app.js','style.css']) await copyFile(`web/${name}`,`dist/${name}`);
+for(const name of ['app.js','style.css','theme.js']) await copyFile(`web/${name}`,`dist/${name}`);
 await cp('web/icons','dist/icons',{recursive:true});
 let html=await readFile('web/index.html','utf8');
 html=html.replace('content="__LOCAL_TOKEN__"','content=""').replace('<script type="module" src="/app.js"></script>','<script type="module" src="/cloud.js"></script>');
