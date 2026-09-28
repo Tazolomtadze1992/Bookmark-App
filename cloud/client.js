@@ -17,19 +17,19 @@ const initial=await db.auth.getSession();
 if(initial.error)notice.textContent=initial.error.message;
 if(!initial.data.session){signedOut();await new Promise(resolve=>{const {data:{subscription}}=db.auth.onAuthStateChange((event,session)=>{if(session){subscription.unsubscribe();resolve();}});});}
 const verified=await db.auth.getUser();
-if(verified.error||!verified.data.user){await db.auth.signOut();location.replace('/');throw Error('Sign in again to continue.');}
+if(verified.error||!verified.data.user){await db.auth.signOut({scope:'local'});location.replace('/');throw Error('Sign in again to continue.');}
 user=verified.data.user;
 login.remove();main.hidden=false;document.querySelector('nav').hidden=false;labLink.hidden=false;
-labLink.textContent='Sign out';labLink.href='#';labLink.addEventListener('click',async e=>{e.preventDefault();const {error}=await db.auth.signOut();if(error){document.querySelector('#status').textContent=error.message;return;}location.replace('/');});
+labLink.textContent='Sign out';labLink.href='#';labLink.addEventListener('click',async e=>{e.preventDefault();const {error}=await db.auth.signOut({scope:'local'});if(error){document.querySelector('#status').textContent=error.message;return;}location.replace('/');});
 personalLabel.textContent='Private · Saved in your account';
 const reply=data=>new Response(JSON.stringify(data),{headers:{'Content-Type':'application/json'}});
 const remoteMedia=(value,host)=>{try{const u=new URL(value);return u.protocol==='https:'&&u.hostname===host&&!u.username&&!u.password&&(!u.port||u.port==='443')?u.href:null;}catch{return null;}};
 window.libraryAPI={
  cloud:true,
- async request(path){
+ async request(path,method='GET',body){
   if(path==='/api/state'){
    const rows=[];let offset=0;
-   while(true){const {data,error}=await db.from('library_references').select('id,record,motion,poster,metadata').order('saved_at',{ascending:false}).order('id').range(offset,offset+499);if(error)throw error;rows.push(...data);if(data.length<500)break;offset+=500;}
+   while(true){const {data,error}=await db.from('library_references').select('id,record,motion,poster,metadata').is('deleted_at',null).order('saved_at',{ascending:false}).order('id').range(offset,offset+499);if(error)throw error;rows.push(...data);if(data.length<500)break;offset+=500;}
    const state={captures:[],motion:{},x_images:{},x_metadata:{},bookmarks:null};
    for(const row of rows){
     const item={...row.record,id:row.id};
@@ -39,40 +39,46 @@ window.libraryAPI={
     if(pid&&remoteMedia(row.poster,'pbs.twimg.com'))state.x_images[pid]=row.poster;
     if(pid&&row.metadata){state.x_metadata[pid]={...row.metadata,avatar:remoteMedia(row.metadata.avatar,'pbs.twimg.com')||''};}
    }
+   try{state.bookmarks=await cloudRequest('/status');}catch(e){state.cloud_error=e.message;}
    return reply(state);
   }
   const image=path.match(/^\/api\/image\/([a-f0-9]{32})$/);
   if(image){const {data,error}=await db.storage.from('previews').download(`${user.id}/${image[1]}.jpg`);if(error)throw error;return new Response(data,{headers:{'Content-Type':'image/jpeg'}});}
-  throw Error('This action is available in the local Capture Lab.');
+  if(path==='/api/trash'){
+   const {error}=await db.from('library_references').update({deleted_at:new Date().toISOString()}).eq('id',body.id);if(error)throw error;return reply({ok:true});
+  }
+  if(path==='/api/refresh-media')return reply(await cloudRequest('/refresh',body));
+  throw Error('This action is not available.');
  }
 };
-// A reviewed local export is imported only when its owner chooses a file.
-const upload=document.createElement('input');upload.type='file';upload.accept='.json,application/json';upload.hidden=true;
-const importButton=document.createElement('button');importButton.type='button';importButton.className='cloud-import';importButton.textContent='Import local collection';importButton.addEventListener('click',()=>upload.click());
-document.querySelector('.toolbar').prepend(importButton,upload);
-upload.addEventListener('change',async()=>{
- const file=upload.files[0];if(!file)return;const status=document.querySelector('#status');
- importButton.disabled=true;
- try{
-  if(file.size>50000000)throw Error('This import is too large. Import fewer than 50 MB at a time.');
-  const bundle=JSON.parse(await file.text());
-  if(bundle.format!=='bookmark-app-transfer-v1'||!Array.isArray(bundle.references)||bundle.references.length>500)throw Error('Choose a Bookmark App transfer export.');
-  for(const row of bundle.references){
-   const item=row.record;
-   if(!item||!item.id?.match(/^[a-f0-9]{32}$/)||!/^https?:\/\//i.test(item.url)||!['website','x_post'].includes(item.kind)||!Number.isFinite(Date.parse(item.created_at))||!Number.isFinite(Date.parse(item.updated_at)))throw Error('The export contains an invalid reference.');
-   if(row.preview&&(!/^data:image\/jpeg;base64,/.test(row.preview)||row.preview.length>4000100))throw Error('The export contains an invalid preview.');
-  }
-  let count=0;
-  for(const row of bundle.references){
-   status.textContent=`Importing ${++count} of ${bundle.references.length}…`;
-   const item=row.record;
-   const {data:existing,error:readError}=await db.from('library_references').select('saved_at').eq('id',item.id).maybeSingle();if(readError)throw readError;
-   if(existing&&Date.parse(existing.saved_at)>Date.parse(item.updated_at))continue;
-   if(row.preview){const bytes=Uint8Array.from(atob(row.preview.split(',')[1]),c=>c.charCodeAt(0));const blob=new Blob([bytes],{type:'image/jpeg'});if(blob.size>3000000)throw Error('Preview exceeds the 3 MB limit.');const {error}=await db.storage.from('previews').upload(`${user.id}/${item.id}.jpg`,blob,{contentType:'image/jpeg',upsert:true});if(error)throw error;}
-   const {error}=await db.from('library_references').upsert({user_id:user.id,id:item.id,record:item,saved_at:item.updated_at,motion:row.motion||null,poster:row.poster||null,metadata:row.metadata||{}},{onConflict:'user_id,id'});if(error)throw error;
-  }
-  location.reload();
- }catch(e){status.textContent=`Import stopped: ${e.message}. You can retry the same file; duplicates will not be created.`;}finally{importButton.disabled=false;upload.value='';}
+async function cloudRequest(path,body={}){
+ const {data:{session},error}=await db.auth.getSession();if(error||!session)throw Error('Sign in again to continue.');
+ const r=await fetch(SUPABASE_URL+'/functions/v1/library-service'+path,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token},body:JSON.stringify(body)});
+ const data=await r.json();if(!r.ok)throw Error(data.error||'Cloud connection failed.');return data;
+}
+const tools=document.createElement('details');tools.className='cloud-tools';
+const summary=document.createElement('summary');summary.textContent='Connections & Trash';
+const panel=document.createElement('div');panel.className='cloud-panel';
+const report=document.createElement('p');report.setAttribute('role','status');
+function action(label,fn){const button=document.createElement('button');button.type='button';button.textContent=label;button.addEventListener('click',async()=>{button.disabled=true;try{await fn();}catch(e){report.textContent=e.message;}finally{button.disabled=false;}});panel.append(button);return button;}
+async function connectionStatus(){const status=await cloudRequest('/status');report.textContent=status?`${status.enabled?'X checks on':'X checks paused'} · ${status.message} · $${((status.reserved_units||0)/1000).toFixed(3)} of $3 allowance reserved (conservative estimate).`:'X cloud connection is not ready yet.';}
+action('Connect extension',async()=>{
+ if(document.documentElement.dataset.libraryExtension!=='cloud-v1')throw Error('Reload the updated Reference Library extension in Chrome, then reload this page.');
+ const ready=new Promise((resolve,reject)=>{const timer=setTimeout(()=>{window.removeEventListener('message',listener);reject(Error('Extension did not respond. Reload it and try again.'));},10000);function listener(event){if(event.source===window&&event.origin===location.origin&&event.data?.type==='library-connected'){clearTimeout(timer);window.removeEventListener('message',listener);event.data.ok?resolve(event.data):reject(Error('Could not connect the extension.'));}}window.addEventListener('message',listener);});
+ const {token}=await cloudRequest('/device');window.postMessage({type:'library-connect',token},location.origin);await ready;report.textContent='Extension connected. New saves go directly to your private cloud library.';
 });
+action('Check X now',async()=>{report.textContent='Checking X…';const result=await cloudRequest('/check');report.textContent=result.message;window.dispatchEvent(new Event('library-refresh'));});
+action('Pause X checks',async()=>{await cloudRequest('/control',{enabled:false});await connectionStatus();});
+action('Resume X checks',async()=>{await cloudRequest('/control',{enabled:true});await connectionStatus();});
+action('Reconnect X',async()=>{const result=await cloudRequest('/reconnect');location.assign(result.url);});
+action('Disconnect extensions',async()=>{await cloudRequest('/device/revoke');report.textContent='Extension connections revoked. Pending saves stay in their browser queues.';});
+const trash=document.createElement('div');trash.className='trash-list';
+action('Open Trash',async()=>{
+ const {data,error}=await db.from('library_references').select('id,record').not('deleted_at','is',null);if(error)throw error;
+ trash.replaceChildren();if(!data.length)trash.textContent='Trash is empty.';
+ for(const row of data){const line=document.createElement('p'),button=document.createElement('button');line.append(document.createTextNode(row.record.title+' '));button.textContent='Restore';button.addEventListener('click',async()=>{button.disabled=true;const {error}=await db.from('library_references').update({deleted_at:null}).eq('id',row.id);if(error){report.textContent=error.message;button.disabled=false;return;}line.remove();window.dispatchEvent(new Event('library-refresh'));});line.append(button);trash.append(line);}
+});
+panel.append(report,trash);tools.append(summary,panel);document.querySelector('.toolbar').prepend(tools);
+tools.addEventListener('toggle',()=>{if(tools.open)connectionStatus().catch(e=>{report.textContent=e.message;});});
 db.auth.onAuthStateChange(event=>{if(event==='SIGNED_OUT')location.replace('/');});
 await import('/app.js');

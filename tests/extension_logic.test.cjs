@@ -7,17 +7,18 @@ const path=require('node:path');
 const {webcrypto}=require('node:crypto');
 const source=fs.readFileSync(path.join(__dirname,'../extension/background.js'),'utf8');
 function setup({offline=false,switchTab=false,partial=false,missingToken=false,rejected=false}={}){
- let state={};const posts=[],calls=[];let badge='',title='';
+ let state={cloudToken:missingToken?null:"a".repeat(64)};const posts=[],calls=[];let badge='',title='';
  const tab={id:7,windowId:1,url:'https://example.test/reference',title:'Fixture'};
  const chrome={
   storage:{local:{setAccessLevel:async()=>{},get:async k=>structuredClone(state),set:async v=>{state={...state,...structuredClone(v)};calls.push('persist');}}},
   action:{setBadgeText:async x=>{badge=x.text},setTitle:async x=>{title=x.title},onClicked:{addListener:()=>{}}},
   contextMenus:{removeAll:fn=>fn(),create:()=>{},onClicked:{addListener:()=>{}}},
-  runtime:{onInstalled:{addListener:()=>{}}},
+  runtime:{onInstalled:{addListener:()=>{}},onMessage:{addListener:()=>{}},onStartup:{addListener:()=>{}}},
+  alarms:{create:()=>{},onAlarm:{addListener:()=>{}}},
   scripting:{executeScript:async()=>[{result:{url:tab.url,title:'Fixture',description:'Test only',viewport:{width:100,height:100},warnings:[],skip_preview:partial}}]},
   tabs:{query:async()=>[{...tab,id:switchTab?99:7}],captureVisibleTab:async()=>{calls.push('screenshot');return 'fixture-image';},create:async()=>{}},
  };
- const context=vm.createContext({chrome,importScripts:()=>{},CAPTURE_CONFIG:{base:'http://127.0.0.1:8765',token:missingToken?'':'mock'},URL,crypto:webcrypto,performance,AbortSignal,console:{error:()=>{}},fetch:async(url,options)=>{
+ const context=vm.createContext({chrome,importScripts:()=>{},CAPTURE_CONFIG:{base:'https://library.example.test',endpoint:'https://cloud.example.test/functions/v1/library-service'},URL,crypto:webcrypto,performance,AbortSignal,console:{error:()=>{}},fetch:async(url,options)=>{
    if(offline)throw Error('offline');posts.push(JSON.parse(options.body));return rejected ? {ok:false,status:403,json:async()=>({error:'Capture request not authorised.'})} : {ok:true,json:async()=>({ok:true})};
  }});
  vm.runInContext(source,context);
@@ -43,7 +44,7 @@ test('timeline is rejected before source collection',async()=>{
 });
 test('unpaired copy reports pairing failure and preserves capture without a request',async()=>{
  const s=setup({missingToken:true});await s.context.saveTab(s.tab);
- assert.equal(s.posts.length,0);assert.equal(s.badge(),'Q');assert.match(s.title(),/not paired/);
+ assert.equal(s.posts.length,0);assert.equal(s.badge(),'Q');assert.match(s.title(),/Connect extension/);
  assert.equal(Object.keys(s.state().outbox).length,1);assert.ok(Object.values(s.state().outbox)[0].preview_data_url);
 });
 test('server rejection is displayed without losing the pending capture',async()=>{

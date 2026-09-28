@@ -1,6 +1,6 @@
 /* Capture only after the owner clicks the toolbar action or uses its shortcut.
    No persistent content script, background browsing, cookies, or X credentials. */
-importScripts("config.local.js");
+importScripts("cloud-config.js");
 let task = Promise.resolve();
 chrome.storage.local.setAccessLevel({accessLevel: "TRUSTED_CONTEXTS"}).catch(() => {});
 
@@ -14,13 +14,11 @@ function enqueue(work) {
 }
 
 async function api(path, body) {
-  if (!CAPTURE_CONFIG.token) throw new Error("This extension copy is not paired. Load the extension folder from the running server's project, then reload it in Chrome.");
-  const response = await fetch(CAPTURE_CONFIG.base + path, {
-    method: "POST", headers: {"Content-Type": "application/json", "X-Capture-Token": CAPTURE_CONFIG.token},
-    body: JSON.stringify(body), signal: AbortSignal.timeout(5000),
-  });
-  const result = await response.json();
-  if (!response.ok) throw new Error(result.error || `Local service error ${response.status}`);
+  const {cloudToken}=await chrome.storage.local.get('cloudToken');
+  if(!cloudToken)throw new Error('Open your library and choose Connect extension. Your save remains queued.');
+  const response=await fetch(CAPTURE_CONFIG.endpoint+'/capture',{method:'POST',headers:{'Content-Type':'application/json','X-Device-Token':cloudToken},body:JSON.stringify(body),signal:AbortSignal.timeout(30000)});
+  const result=await response.json();
+  if(!response.ok)throw new Error(result.error||'Cloud save failed.');
   return result;
 }
 
@@ -111,7 +109,7 @@ async function preparePreview(dataURL, metadata) {
 async function saveTab(tab) {
   const start = performance.now();
   if (!tab?.id || !/^https?:\/\//.test(tab.url || "")) throw new Error("Open an ordinary website or an individual X post first.");
-  if (tab.url.startsWith(CAPTURE_CONFIG.base)) { await flushQueue(); await chrome.tabs.create({url: CAPTURE_CONFIG.base}); return; }
+  if (new URL(tab.url).origin === CAPTURE_CONFIG.base) { await flushQueue(); await chrome.tabs.create({url: CAPTURE_CONFIG.base}); return; }
   const source = new URL(tab.url);
   if (/^(?:www\.|mobile\.)?(?:x|twitter)\.com$/.test(source.hostname) && !/\/(?:[^/]+\/status|i\/status)\/\d+/.test(source.pathname)) {
     throw new Error("Open the individual X post before saving. Feed capture is not in this test.");
@@ -147,19 +145,19 @@ async function saveTab(tab) {
   try { await chrome.storage.local.set({outbox}); }
   catch {
     item.preview_data_url = null;
-    item.warnings.push("Local queue is full; URL retained without its preview. Start the lab and retry.");
+    item.warnings.push("Local queue is full; URL retained without its preview. Reconnect and retry.");
     outbox[queueKey] = item;
     await chrome.storage.local.set({outbox});
   }
   const result = await flushQueue();
   await chrome.action.setBadgeText({text: result.remaining ? "Q" : item.preview_data_url ? "✓" : "!"});
-  await chrome.action.setTitle({title: result.remaining ? `Saved in local retry queue. Delivery failed: ${result.error || "Unknown local service error"} Right-click this icon → Retry pending saves after resolving it.` : item.preview_data_url ? "Saved with a preview. Playback and usefulness still need checking." : "Source saved, but preview is incomplete. Open the capture lab for details."});
+  await chrome.action.setTitle({title: result.remaining ? `Saved in local retry queue. Delivery failed: ${result.error || "Cloud unavailable"} Right-click this icon → Retry pending saves after resolving it.` : item.preview_data_url ? "Saved with a preview. Playback and usefulness still need checking." : "Source saved, but preview is incomplete. Open your library for details."});
 }
 
 chrome.action.onClicked.addListener(tab => enqueue(() => saveTab(tab)));
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.removeAll(() => {
-    chrome.contextMenus.create({id: "open-lab", title: "Open capture lab", contexts: ["action"]});
+    chrome.contextMenus.create({id: "open-lab", title: "Open your library", contexts: ["action"]});
     chrome.contextMenus.create({id: "retry", title: "Retry pending saves", contexts: ["action"]});
   });
 });
@@ -168,6 +166,17 @@ chrome.contextMenus.onClicked.addListener(info => {
   if (info.menuItemId === "retry") enqueue(async () => {
     const {remaining, error} = await flushQueue();
     await chrome.action.setBadgeText({text: remaining ? "Q" : "✓"});
-    await chrome.action.setTitle({title: remaining ? `Still queued. Delivery failed: ${error || "Unknown local service error"}` : "Pending saves delivered."});
+    await chrome.action.setTitle({title: remaining ? `Still queued. Delivery failed: ${error || "Cloud unavailable"}` : "Pending saves delivered."});
   });
 });
+
+// The bridge exists only on the exact private library origin. Tokens can capture
+// references but cannot read the collection, delete cards, or access X credentials.
+chrome.runtime.onMessage.addListener((message,sender,reply)=>{
+  if(sender.url && new URL(sender.url).origin===CAPTURE_CONFIG.base && message.type==='connect-cloud' && /^[a-f0-9]{64}$/.test(message.token)){
+    enqueue(async()=>{await chrome.storage.local.set({cloudToken:message.token});const result=await flushQueue();reply({ok:true,queued:result.remaining});});return true;
+  }
+});
+chrome.alarms.create('retry-cloud',{periodInMinutes:1});
+chrome.alarms.onAlarm.addListener(alarm=>{if(alarm.name==='retry-cloud')enqueue(async()=>{const result=await flushQueue();await chrome.action.setBadgeText({text:result.remaining?'Q':''});});});
+chrome.runtime.onStartup.addListener(()=>enqueue(flushQueue));

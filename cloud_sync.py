@@ -183,6 +183,8 @@ class CloudSync:
 
     def control(self, action):
         with self.lock:
+            if self.session.get('cloud_migrated'):
+                raise CloudError('Saving moved to the cloud extension. Local delivery is disabled to preserve cloud changes.')
             if action not in ('pause','resume','retry') or not self.session.get('user_id'):
                 raise CloudError('Connect your cloud account first.')
             if self.auth_error:
@@ -205,6 +207,8 @@ class CloudSync:
 
     def cycle(self):
         with self.lock:
+            if self.session.get('cloud_migrated'):
+                return
             snapshots = self.snapshots()
             self.reconcile(snapshots)
             if not self.session.get('enabled') or self.auth_error:

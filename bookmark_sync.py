@@ -234,6 +234,8 @@ class BookmarkSync:
 
     def sync_once(self):
         with self.lock:
+            if self.state.get('cloud_migrated'):
+                raise SyncError('X checks moved to your cloud library. Local paid requests are disabled.')
             if self.state.get('phase') != 'ready' or not self.state.get('ready_at'):
                 raise SyncError('A complete exclusion baseline is required first.')
             if time.time() - self.state.get('last_attempt', 0) < 60:
@@ -296,6 +298,8 @@ class BookmarkSync:
 
     def control(self, action):
         with self.lock:
+            if self.state.get('cloud_migrated'):
+                raise SyncError('X checks moved to your cloud library. Manage them there to avoid duplicate requests.')
             if action == 'pause':
                 self.state.update(enabled=False, message='Bookmark sync paused.')
             elif action == 'enable':
