@@ -44,6 +44,13 @@ class CloudTests(unittest.TestCase):
     def test_recapture_requeues_once(self):
         self.save();self.cloud.cycle();self.save(description='New description');self.cloud.cycle()
         self.assertEqual(len(self.calls),2);self.assertEqual(self.cloud.status()['synced'],1)
+    def test_imported_x_bookmark_enters_same_delivery_path(self):
+        self.assertTrue(self.store.import_bookmark({'id':'987654321','text':'A new motion reference'}, {'name':'Author','username':'author'}))
+        with patch('cloud_sync.motion_manifest',return_value={'987654321':{'url':'https://video.twimg.com/test.mp4','width':100,'height':100}}):self.cloud.cycle()
+        self.assertEqual(len(self.calls),1)
+        payload=self.calls[0][1][1]
+        self.assertEqual(payload['record']['post_id'],'987654321');self.assertEqual(payload['record']['kind'],'x_post')
+        self.assertEqual(payload['motion']['width'],100)
     def test_later_media_enrichment_is_uploaded(self):
         self.store.save({'url':'https://x.com/a/status/123'})
         self.cloud.cycle()

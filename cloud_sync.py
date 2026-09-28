@@ -55,7 +55,7 @@ class CloudSync:
         self.pending = None
         self.lock = threading.RLock()
         self.stop = threading.Event()
-        self.message = 'Connect this Mac to enable automatic cloud saves.'
+        self.message = ('Automatic cloud saves enabled.' if self.session.get('enabled') else 'Automatic cloud saves paused.') if self.session.get('user_id') else 'Connect this Mac to enable automatic cloud saves.'
         self.auth_error = False
         with store.lock:
             store.db.execute('''CREATE TABLE IF NOT EXISTS cloud_delivery (

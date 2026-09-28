@@ -112,7 +112,7 @@ async function refresh() {
     if(item.post_id)review.append(reviewSelect("Motion playback",[["not_tested","Not tested"],["works_in_embed","Works inside embed"],["source_only","Only works at source"],["failed","Does not work"],["not_applicable","No motion in this post"]],item.playback,async v=>{await api("/api/evaluation","POST",{id:item.id,playback:v});$("#status").textContent="Playback assessment saved.";}));
     const del=button("Delete local capture",async()=>{if(confirm("Delete this capture and its preview from this computer?")){await api(`/api/captures/${item.id}`,"DELETE");await refresh();}});del.className="delete";review.append(del);body.append(review);card.append(body);wrap.append(card);
   }
-  $("#status").textContent="Captures are local. Paid X requests are not made by saving or refreshing.";
+  $("#status").textContent="Local captures upload when cloud saves are connected. Saving or refreshing does not make paid X requests.";
   $("#run-probe").disabled=!!state.x_probe;
   $("#motion-status").textContent=state.x_probe ? (state.x_probe.error || `Lookup finished: ${(state.x_probe.sample_results||[]).filter(p=>p.video_variants_present).length} primary video links returned. ${state.x_probe.playback_verified?"Real native playback verified for the five-post test.":"Playback still needs real verification."} No repeat request will run.`) : "No paid lookup has run. Your existing captures are unchanged.";
   renderBookmarkStatus();
