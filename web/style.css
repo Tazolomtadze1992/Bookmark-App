@@ -146,3 +146,10 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,.u
 @media(max-width:760px){.topbar .search input{font-size:16px}}
 @media(pointer:coarse){.topbar .search{height:44px;min-height:44px}.topbar .account-menu>summary{width:44px;height:44px;min-width:44px;min-height:44px}.topbar .account-menu>summary::after{inset:0}}
 @media(prefers-reduced-motion:reduce){.topbar .search{transition:none}}
+
+/* Exact better-ui shadow-as-border recipe; scoped to header utilities. */
+:root{--shadow-border:0px 0px 0px 1px oklch(0 0 0 / 0.06),0px 1px 2px -1px oklch(0 0 0 / 0.06),0px 2px 4px 0px oklch(0 0 0 / 0.04);--shadow-border-hover:0px 0px 0px 1px oklch(0 0 0 / 0.08),0px 1px 2px -1px oklch(0 0 0 / 0.08),0px 2px 4px 0px oklch(0 0 0 / 0.06)}
+:root[data-theme="dark"]{--shadow-border:0 0 0 1px oklch(1 0 0 / 0.08);--shadow-border-hover:0 0 0 1px oklch(1 0 0 / 0.13)}
+.topbar .search,.topbar .account-menu>summary{border:0;box-shadow:var(--shadow-border);transition:box-shadow 150ms ease-out,background-color 140ms ease,transform 120ms ease}
+@media(hover:hover) and (pointer:fine){.topbar .search:hover,.topbar .account-menu>summary:hover{box-shadow:var(--shadow-border-hover)}}
+@media(prefers-reduced-motion:reduce){.topbar .search,.topbar .account-menu>summary{transition:none}}
