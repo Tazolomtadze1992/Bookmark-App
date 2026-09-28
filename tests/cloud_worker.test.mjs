@@ -21,3 +21,21 @@ test('X URL variants deduplicate using existing local identifiers',async()=>{
  assert.throws(()=>normalise('https://user:password@example.com/'));
  assert.equal(normalise('https://example.com/?utm_source=x&project=hello#one').url,'https://example.com/?project=hello#one');
 });
+test('albums preserve all attachment keys in post order, not includes order',()=>{
+ const keys=['a','b','c','d'];
+ const media=keys.toReversed().map((media_key,i)=>({media_key,type:'photo',url:`https://pbs.twimg.com/media/${media_key}.jpg`,width:800,height:1200,alt_text:`Poster ${media_key}`}));
+ const result=projectPost({attachments:{media_keys:keys}},{media});
+ assert.deepEqual(result.metadata.media.map(m=>m.media_key),keys);
+ assert.equal(result.metadata.media.length,4);assert.equal(result.poster,'https://pbs.twimg.com/media/a.jpg');assert.equal(result.motion,null);
+ assert.equal(result.metadata.media[3].alt,'Poster d');
+});
+test('mixed albums keep independent videos and unavailable slots without unsafe URLs',()=>{
+ const result=projectPost({attachments:{media_keys:['photo','video','missing','unsafe']}},{media:[
+  {media_key:'photo',type:'photo',url:'https://pbs.twimg.com/photo.jpg'},
+  {media_key:'video',type:'video',width:640,height:360,preview_image_url:'https://pbs.twimg.com/poster.jpg',variants:[{content_type:'video/mp4',bit_rate:1000,url:'https://video.twimg.com/clip.mp4'}]},
+  {media_key:'unsafe',type:'photo',url:'https://evil.test/photo.jpg'}
+ ]});
+ assert.equal(result.motion,null);assert.equal(result.metadata.media[1].motion.url,'https://video.twimg.com/clip.mp4');
+ assert.equal(result.metadata.media[2].type,'unavailable');assert.equal(result.metadata.media[3].poster,null);
+ assert.deepEqual(projectPost({}).metadata.media,[]);
+});

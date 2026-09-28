@@ -42,7 +42,7 @@ async function run(owner:string,manual=false,refreshId?:string){
    creds=credentials(token,creds.client_id,creds);await rpc('credentials',owner,{lease,credentials:creds});
   }
   const get=async(path:string,units:number)=>{await rpc('reserve',owner,{lease,units});return xRequest(path,creds.access_token);};
-  const lookup=async(list:string[])=>get('/2/tweets?'+new URLSearchParams({ids:list.join(','),'tweet.fields':'text,author_id,created_at,attachments',expansions:'attachments.media_keys,author_id','media.fields':'type,url,preview_image_url,variants,width,height,duration_ms','user.fields':'name,username,profile_image_url'}),list.length*15);
+  const lookup=async(list:string[])=>get('/2/tweets?'+new URLSearchParams({ids:list.join(','),'tweet.fields':'text,author_id,created_at,attachments',expansions:'attachments.media_keys,author_id','media.fields':'type,url,preview_image_url,variants,width,height,duration_ms,alt_text','user.fields':'name,username,profile_image_url'}),list.length*15);
   if(refreshId){
    const result=await lookup([refreshId]);if(ids(result).length!==1||result.data[0].id!==refreshId)throw Error('This post is no longer available.');
    await writePost(owner,result.data[0],result.includes,true);await finish({message:'Preview refreshed from X.'});return {message:'Preview refreshed.'};

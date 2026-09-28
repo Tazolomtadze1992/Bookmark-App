@@ -37,7 +37,7 @@ window.libraryAPI={
     state.captures.push(item);const pid=item.post_id;
     if(pid&&row.motion&&remoteMedia(row.motion.url,'video.twimg.com'))state.motion[pid]=row.motion;
     if(pid&&remoteMedia(row.poster,'pbs.twimg.com'))state.x_images[pid]=row.poster;
-    if(pid&&row.metadata){state.x_metadata[pid]={...row.metadata,avatar:remoteMedia(row.metadata.avatar,'pbs.twimg.com')||''};}
+    if(pid&&row.metadata){state.x_metadata[pid]={...row.metadata,avatar:remoteMedia(row.metadata.avatar,'pbs.twimg.com')||'',media:(Array.isArray(row.metadata.media)?row.metadata.media:[]).map(m=>({...m,poster:remoteMedia(m.poster,'pbs.twimg.com'),motion:m.motion&&remoteMedia(m.motion.url,'video.twimg.com')?m.motion:null}))};}
    }
    try{state.bookmarks=await cloudRequest('/status');}catch(e){state.cloud_error=e.message;}
    return reply(state);
