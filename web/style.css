@@ -41,7 +41,6 @@ dialog::backdrop{background:var(--backdrop);backdrop-filter:blur(3px)}.detail-st
 /* Only user-triggered motion: no stagger or animation when the grid loads. */
 .tab,.icon-button,.utility-menu>summary,.menu-item{transition:background-color 140ms ease,transform 120ms ease}.tab:active,.icon-button:not(:disabled):active,.utility-menu>summary:active,.menu-item:active{transform:scale(.96)}
 .utility-menu[open]>.menu-panel{animation:menu-enter 150ms cubic-bezier(.2,0,0,1)}@keyframes menu-enter{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
-dialog[open] .detail-layout{opacity:1;transform:translateY(0);transition:opacity 180ms ease-out,transform 180ms cubic-bezier(.2,0,0,1)}dialog[open]::backdrop{opacity:1;transition:opacity 180ms ease-out}@starting-style{dialog[open] .detail-layout{opacity:0;transform:translateY(6px)}dialog[open]::backdrop{opacity:0}}dialog.is-closing .detail-layout{opacity:0;transform:translateY(6px);transition-duration:160ms}dialog.is-closing::backdrop{opacity:0;transition-duration:160ms}
 @media(hover:hover) and (pointer:fine){.website-card>.card-menu{opacity:0;transition:opacity 140ms ease}.website-card:hover>.card-menu,.website-card:focus-within>.card-menu,.website-card>.card-menu[open]{opacity:1}.tab:hover,.account-menu>summary:hover{background:var(--soft)}}
 @media(min-width:1600px){.topbar{height:72px}main{padding-top:24px}.detail-layout{grid-template-columns:320px minmax(0,1fr)}.detail-info{padding:28px}}
 @media(max-width:1000px){.topbar{gap:18px;padding-inline:24px}.wordmark{font-size:16px}.tab{padding-inline:12px}.search{width:220px}main{padding-inline:24px}.detail-layout{grid-template-columns:280px minmax(0,1fr)}}
@@ -176,3 +175,17 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,.u
 #folder-status:empty{display:none}
 @media(pointer:coarse){.folder-pill{height:44px;min-width:44px}.folder-pill::before{inset:0}}
 @media(max-width:760px){.folder-bar{align-items:flex-start;flex-direction:column;gap:8px;margin-bottom:20px}}
+
+/* Shared card-to-detail motion: the grid never reflows behind the expanded media. */
+html{scrollbar-gutter:stable}
+#detail{isolation:isolate;overflow:hidden}
+#detail::backdrop{background:oklch(0.98 0 0 / .48);backdrop-filter:blur(12px)}
+:root[data-theme="dark"] #detail::backdrop{background:oklch(0.16 0 0 / .55)}
+.detail-stage>.detail-media>.media-image{width:auto;height:auto}
+.detail-layout{position:relative}
+.detail-stage{z-index:1}
+.detail-source>:not(.open-card){visibility:hidden}
+.detail-source{background:transparent;border-color:transparent}
+.detail-moving .album-controls,.detail-moving .motion-controls{pointer-events:none}
+.detail-moving .motion-controls{visibility:hidden}
+@media(max-width:760px){.detail-layout{background:transparent}.detail-stage{z-index:auto}}
