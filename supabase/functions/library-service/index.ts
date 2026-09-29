@@ -1,5 +1,6 @@
 import {createClient} from 'npm:@supabase/supabase-js@2.117.2';
 import {SCOPES,newPrefix,projectPost,normalise,digest} from './logic.js';
+import {updateFolders,folderSyncDue} from './folders.js';
 const ORIGIN='https://bookmark-app-nu-seven.vercel.app';
 const URL_BASE=Deno.env.get('SUPABASE_URL')!;
 const db=createClient(URL_BASE,Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,{auth:{persistSession:false,autoRefreshToken:false}});
@@ -29,7 +30,7 @@ async function writePost(owner:string,post:any,includes:any,refresh=false){
  const write=existing?db.from('library_references').update(row).eq('user_id',owner).eq('id',id).is('deleted_at',null):db.from('library_references').upsert(row,{onConflict:'user_id,id',ignoreDuplicates:true});
  const {error:writeError}=await write;if(writeError)throw Error('Could not save the X reference. Checkpoint preserved.');
 }
-async function run(owner:string,manual=false,refreshId?:string){
+async function run(owner:string,manual=false,refreshId?:string,foldersOnly=false){
  const work=await rpc('claim',owner,{manual});if(!work)return {message:'A check is already running or was just completed.'};
  const {lease,state}=work;let creds=work.credentials;
  const finish=(patch:object)=>rpc('finish',owner,{lease,state:patch});
@@ -43,6 +44,22 @@ async function run(owner:string,manual=false,refreshId?:string){
   }
   const get=async(path:string,units:number)=>{await rpc('reserve',owner,{lease,units});return xRequest(path,creds.access_token);};
   const lookup=async(list:string[])=>get('/2/tweets?'+new URLSearchParams({ids:list.join(','),'tweet.fields':'text,author_id,created_at,attachments',expansions:'attachments.media_keys,author_id','media.fields':'type,url,preview_image_url,variants,width,height,duration_ms,alt_text','user.fields':'name,username,profile_image_url'}),list.length*15);
+  const syncFolders=async(force=false)=>{
+   if(!folderSyncDue(state,force))return {};
+   const knownIds:string[]=[];
+   for(let offset=0;;offset+=500){
+    const {data,error}=await db.from('library_references').select('record').eq('user_id',owner).is('deleted_at',null).order('id').range(offset,offset+499);
+    if(error)throw Error('Could not read references for folder matching.');
+    for(const row of data)if(row.record.kind==='x_post'&&row.record.post_id)knownIds.push(row.record.post_id);
+    if(data.length<500)break;
+   }
+   return updateFolders({state,force,knownIds,get});
+  };
+  if(foldersOnly){
+   const patch=await syncFolders(true);
+   await finish(patch);
+   return {message:patch.folder_error||'X folders synced.',ok:!patch.folder_error};
+  }
   if(refreshId){
    const result=await lookup([refreshId]);if(ids(result).length!==1||result.data[0].id!==refreshId)throw Error('This post is no longer available.');
    await writePost(owner,result.data[0],result.includes,true);await finish({message:'Preview refreshed from X.'});return {message:'Preview refreshed.'};
@@ -58,8 +75,9 @@ async function run(owner:string,manual=false,refreshId?:string){
   const candidates=newPrefix(list,state.anchors,state.baseline_ids,state.seen_ids||[]);
   if(candidates.length>20)throw Error('More than 20 new bookmarks found. Checks paused for review.');
   if(candidates.length){const result=await lookup(candidates);const returned=ids(result);if(returned.length!==candidates.length||!candidates.every(id=>returned.includes(id)))throw Error('Some posts are unavailable. Checkpoint preserved.');for(const post of result.data)await writePost(owner,post,result.includes);}
+  const folderPatch=await syncFolders(manual||candidates.length>0);
   const message=`Last check: ${candidates.length} new bookmark(s). Old bookmarks remain excluded.`;
-  await finish({seen_ids:[...new Set([...(state.seen_ids||[]),...candidates])],anchors:list.length?list.slice(0,10):state.anchors,last_check:Date.now()/1000,imported:(state.imported||0)+candidates.length,message});return {message};
+  await finish({...folderPatch,seen_ids:[...new Set([...(state.seen_ids||[]),...candidates])],anchors:list.length?list.slice(0,10):state.anchors,last_check:Date.now()/1000,imported:(state.imported||0)+candidates.length,message});return {message};
  }catch(e){const message=e instanceof Error?e.message:'Cloud check failed. Checkpoint preserved.';await finish({enabled:false,message});throw Error(message);}
 }
 async function capture(owner:string,body:any){
@@ -127,6 +145,7 @@ Deno.serve(async req=>{
    return response({url:'https://x.com/i/oauth2/authorize?'+new URLSearchParams({response_type:'code',client_id:pending.client_id,redirect_uri:callback,scope:SCOPES,state,code_challenge:challenge,code_challenge_method:'S256'})});
   }
   if(route==='/control'){await rpc('control',owner,{enabled:body.enabled===true});return response({ok:true});}
+  if(route==='/folders/check')return response(await run(owner,true,undefined,true));
   if(route==='/check')return response(await run(owner,true));
   if(route==='/refresh'){
    if(!/^[a-f0-9]{32}$/.test(body.id))throw Error('Invalid reference.');

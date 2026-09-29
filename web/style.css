@@ -162,3 +162,12 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,.u
 .topbar .header-tools .search{margin-left:0}
 .topbar .header-tools .account-menu{margin-left:0}
 @media(max-width:760px){.topbar{min-height:0;gap:12px;flex-wrap:wrap}.topbar .wave-mark{order:0}.topbar nav{order:1;width:auto;margin-left:auto}.header-tools{order:2;flex-basis:100%;width:100%;margin-left:0}.topbar .header-tools .search{order:0;flex:1;min-width:0;width:auto;flex-basis:auto}.topbar .header-tools .account-menu{order:1}}
+
+/* X folder names remain native to X; browsing this filter uses the saved snapshot. */
+.folder-bar{display:flex;align-items:center;gap:16px;margin:0 0 24px;min-width:0}
+#folder-filter{height:40px;max-width:min(320px,100%);padding:0 36px 0 16px;border:0;border-radius:999px;background:var(--surface);box-shadow:var(--shadow-border);font-size:13px;cursor:pointer;text-overflow:ellipsis}
+#folder-filter:hover{box-shadow:var(--shadow-border-hover)}
+#folder-filter:focus-visible{outline:2px solid var(--focus);outline-offset:3px}
+#folder-status{margin:0;font-size:12px;color:var(--muted)}
+#folder-status:empty{display:none}
+@media(max-width:760px){.folder-bar{align-items:flex-start;flex-direction:column;gap:8px;margin-bottom:20px}#folder-filter{height:44px;width:100%;max-width:100%;font-size:16px}}

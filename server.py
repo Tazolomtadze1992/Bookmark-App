@@ -336,7 +336,7 @@ class Handler(BaseHTTPRequestHandler):
             except SyncError as exc:
                 content = '<p>' + html.escape(str(exc)) + '</p><a href="/">Return to Capture Lab</a>'
                 return self.respond(400, content.encode(), "text/html; charset=utf-8")
-        static = {"/brand-wave.js": ("brand-wave.js", "text/javascript"),"/fonts/InterVariable.woff2": ("fonts/InterVariable.woff2", "font/woff2"), "/fonts/InterVariable-Italic.woff2": ("fonts/InterVariable-Italic.woff2", "font/woff2"), "/theme.js": ("theme.js", "text/javascript"),"/cloud-local.js": ("cloud-local.js", "text/javascript"), "/app.js": ("app.js", "text/javascript"), "/style.css": ("style.css", "text/css"), "/lab.js": ("lab.js", "text/javascript"), "/lab.css": ("lab.css", "text/css")}
+        static = {"/folders.js": ("folders.js", "text/javascript"), "/brand-wave.js": ("brand-wave.js", "text/javascript"),"/fonts/InterVariable.woff2": ("fonts/InterVariable.woff2", "font/woff2"), "/fonts/InterVariable-Italic.woff2": ("fonts/InterVariable-Italic.woff2", "font/woff2"), "/theme.js": ("theme.js", "text/javascript"),"/cloud-local.js": ("cloud-local.js", "text/javascript"), "/app.js": ("app.js", "text/javascript"), "/style.css": ("style.css", "text/css"), "/lab.js": ("lab.js", "text/javascript"), "/lab.css": ("lab.css", "text/css")}
         icon = re.fullmatch(r"/icons/([a-z-]+)\.svg", path)
         if icon and (ROOT / "web/icons" / (icon.group(1) + ".svg")).is_file():
             return self.respond(200, (ROOT / "web/icons" / (icon.group(1) + ".svg")).read_bytes(), "image/svg+xml")

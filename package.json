@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "scripts": {
     "build": "node scripts/build-cloud.mjs",
-    "test": "node --test tests/extension_logic.test.cjs tests/cloud_worker.test.mjs tests/theme.test.cjs"
+    "test": "node --test tests/extension_logic.test.cjs tests/cloud_worker.test.mjs tests/theme.test.cjs tests/folders.test.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.117.2"
