@@ -69,8 +69,9 @@ function renderFolders(){
  }
  select.value=selectedFolder;
  const note=$('#folder-status');
- note.textContent=state.cloud_error?'Folder status unavailable':state.bookmarks?.folder_error?'Folder sync needs attention':!snapshot?.synced_at?'Folders haven’t synced yet':folders.length?'':'Create folders on X to organize your bookmarks.';
- note.title=state.bookmarks?.folder_error||'Folder names and assignments come from X. Existing old-bookmark exclusions still apply.';
+ const allowancePaused=[state.bookmarks?.message,state.bookmarks?.folder_error].includes('Spending allowance reached');
+ note.textContent=state.cloud_error?'Folder status unavailable':allowancePaused?'X sync paused — spending limit reached':state.bookmarks?.folder_error?'Folder sync needs attention':!snapshot?.synced_at?'Folders haven’t synced yet':folders.length?'':'Create folders on X to organize your bookmarks.';
+ note.title=allowancePaused?'New bookmarks and folder updates are paused by the app’s safety allowance. This estimate is not your actual X bill. See Library menu → Connections & Trash.':state.bookmarks?.folder_error||'Folder names and assignments come from X. Existing old-bookmark exclusions still apply.';
 }
 $('#folder-filter').addEventListener('change',e=>{selectedFolder=e.target.value;renderGrid();});
 function filteredItems(){return state.captures.filter(i=>!i.fixture&&i.kind===section&&(section!=='x_post'||inFolder(i,selectedFolder,state.bookmarks?.folder_snapshot))&&(!query||[i.title,i.description,author(i).name,author(i).handle,i.url].join(' ').toLowerCase().includes(query)));}
@@ -122,4 +123,4 @@ if(!window.libraryAPI?.cloud){const link=el('a','Cloud saves');link.id='cloud-st
 window.addEventListener('library-refresh',()=>refresh().catch(error));
 refresh().catch(error);
 // Local reads only; browsing and searching never request paid X data.
-setInterval(async()=>{if(document.hidden||!state)return;try{const next=await(await api('/api/state')).json();const signature=value=>JSON.stringify([value.captures.map(i=>[i.id,i.updated_at]),value.motion,value.x_images,value.x_metadata,value.bookmarks?.folder_snapshot,value.bookmarks?.folder_error,value.cloud_error]);if(signature(next)!==signature(state)){if(dialog.open){pendingRefresh=true;return;}state=next;renderGrid();}else{state.bookmarks=next.bookmarks;state.cloud_error=next.cloud_error;state.cloud_sync=next.cloud_sync;}syncSummary();}catch{$('#sync-status').textContent=window.libraryAPI?.cloud?'Could not refresh your library · Check your connection':'Local server unavailable · Your saved cards are still on this Mac';}},15000);
+setInterval(async()=>{if(document.hidden||!state)return;try{const next=await(await api('/api/state')).json();const signature=value=>JSON.stringify([value.captures.map(i=>[i.id,i.updated_at]),value.motion,value.x_images,value.x_metadata,value.bookmarks?.folder_snapshot,value.bookmarks?.folder_error,value.bookmarks?.message,value.cloud_error]);if(signature(next)!==signature(state)){if(dialog.open){pendingRefresh=true;return;}state=next;renderGrid();}else{state.bookmarks=next.bookmarks;state.cloud_error=next.cloud_error;state.cloud_sync=next.cloud_sync;}syncSummary();}catch{$('#sync-status').textContent=window.libraryAPI?.cloud?'Could not refresh your library · Check your connection':'Local server unavailable · Your saved cards are still on this Mac';}},15000);
