@@ -663,3 +663,10 @@ Production follow-up: Vercel serves the exact committed motion module. Live Chro
 ### Expanded media sound control removed — September 30, 2026
 
 Removed the mute/unmute button from expanded videos, including reused grid players and album videos. Videos remain muted in both grid and expanded views. No capture, synchronization or X spending behavior changed.
+
+
+### Escape dismissal animation — September 30, 2026
+
+Per the owner's correction, Escape now uses the same closing transition as pointer dismissal, rather than the previous immediate-close shortcut. Reduced-motion preferences still use the short stationary fade. An open actions menu still consumes the first Escape; repeated Escape during closing reuses the existing transition.
+
+Validation: syntax, build and diff checks pass. The existing isolated browser fixture passed all 15 checks, including Escape starting the closing animation, repeated Escape completing cleanly, and focus returning to the original card.
