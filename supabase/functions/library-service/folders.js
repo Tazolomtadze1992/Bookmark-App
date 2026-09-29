@@ -4,7 +4,10 @@ export function folderSyncDue(state, force = false, now = Date.now() / 1000) {
   return force || now - (state.folder_last_attempt || 0) >= FOLDER_INTERVAL_SECONDS;
 }
 function pageRows(result) {
-  if (result.errors?.length || (!Array.isArray(result.data) && result.meta?.result_count !== 0)) {
+  // Verified against the real endpoint: HTTP 200 with {} means no folders.
+  // Accept this empty-collection representation for folder contents too.
+  const empty = result && typeof result === 'object' && !Array.isArray(result) && Object.keys(result).length === 0;
+  if (!result || result.errors?.length || (result.data !== undefined && !Array.isArray(result.data)) || (!empty && !Array.isArray(result.data) && result.meta?.result_count !== 0)) {
     throw Error('X folder response was incomplete. Previous folders kept.');
   }
   const rows = result.data || [];

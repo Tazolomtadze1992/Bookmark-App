@@ -26,12 +26,12 @@ test('rename, move, membership removal, and deleted folder replace the complete 
  assert.equal(previous.folders.length,2);
 });
 test('empty successful list clears deleted folders; empty folder remains selectable',async()=>{
- const empty=await readFolderSnapshot({...transport([{data:[]}]),userId:'99',knownIds:[]});assert.deepEqual(empty.folders,[]);
+ const empty=await readFolderSnapshot({...transport([{}]),userId:'99',knownIds:[]});assert.deepEqual(empty.folders,[]);
  const s=await readFolderSnapshot({...transport([page([folder('1','UI')]),{meta:{result_count:0}}]),userId:'99',knownIds:['10']});
  assert.equal(folderOptions(s).length,1);assert.deepEqual(s.folders[0].post_ids,[]);
 });
 test('failed/partial/error responses keep previous snapshot and do not change bookmark checkpoints',async()=>{
- for(const failure of [Error('Spending allowance reached'),Error('X request failed (403).'),{errors:[{detail:'partial'}],data:[]},{},{data:[{id:'invalid'}]}]){
+ for(const failure of [Error('Spending allowance reached'),Error('X request failed (403).'),{errors:[{detail:'partial'}],data:[]},{unexpected:true},{data:{},meta:{result_count:0}},{data:[{id:'invalid'}]}]){
   const previous={folders:[{id:'1',name:'Motion',post_ids:['10']}],synced_at:1};
   const patch=await updateFolders({state:{user_id:'99',folder_snapshot:previous},knownIds:['10'],...transport([page([folder('1','Motion')]),failure]),now:()=>4000000});
   assert.ok(patch.folder_error);assert.equal(patch.folder_snapshot,undefined);assert.equal(patch.anchors,undefined);assert.equal(patch.seen_ids,undefined);assert.equal(patch.enabled,undefined);
