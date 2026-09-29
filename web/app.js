@@ -1,8 +1,8 @@
-import {folderOptions,inFolder} from './folders.js';
+import {folderOptions,inFolder,toggleFolder,validFolderSelection} from './folders.js';
 const $ = s => document.querySelector(s);
 const token = $('meta[name="local-token"]').content;
 let state=null, section='x_post', query='', activeId=null, detailIds=[], returnFocus=null, pendingRefresh=false;
-let selectedFolder='all',folderOptionSignature='';
+let selectedFolders=[],folderOptionSignature='';
 const gridCleanups=[],detailCleanups=[],players=new Set(), imageCache=new Map();
 const dialog=$('#detail');
 async function api(path,method='GET',data){const r=window.libraryAPI?await window.libraryAPI.request(path,method,data):await fetch(path,{method,headers:{'X-Capture-Token':token,...(data?{'Content-Type':'application/json'}:{})},body:data?JSON.stringify(data):undefined});if(!r.ok){let e;try{e=await r.json();}catch{}throw Error(e?.error||'Could not reach your library.');}return r;}
@@ -55,28 +55,31 @@ function albumPreview(item){
 }
 const resizeObserver=new ResizeObserver(entries=>{for(const {target} of entries){const card=target.parentElement;if(card?.parentElement?.classList.contains('masonry'))card.style.gridRowEnd=`span ${Math.ceil(target.getBoundingClientRect().height+20)}`;}});
 function renderFolders(){
- const bar=$('#folder-bar'),select=$('#folder-filter');
+ const bar=$('#folder-bar'),filters=$('#folder-filters');
  bar.hidden=section!=='x_post'||!window.libraryAPI?.cloud;
  if(bar.hidden)return;
  const snapshot=state.bookmarks?.folder_snapshot,folders=folderOptions(snapshot);
- if(selectedFolder!=='all'&&selectedFolder!=='unfiled'&&!folders.some(f=>f.id===selectedFolder))selectedFolder='all';
- if(selectedFolder==='unfiled'&&!snapshot?.synced_at)selectedFolder='all';
+ selectedFolders=validFolderSelection(selectedFolders,snapshot);
  const signature=JSON.stringify([folders.map(f=>[f.id,f.name]),!!snapshot?.synced_at]);
  if(signature!==folderOptionSignature){
-  folderOptionSignature=signature;select.replaceChildren(new Option('All folders','all'));
-  for(const folder of folders)select.append(new Option(folder.name,folder.id));
-  if(snapshot?.synced_at)select.append(new Option('Unfiled','unfiled'));
+  const focused=document.activeElement?.dataset.folder;
+  folderOptionSignature=signature;filters.replaceChildren();
+  const options=[{id:'all',name:'All'},...folders,...(snapshot?.synced_at?[{id:'unfiled',name:'Unfiled'}]:[])];
+  for(const {id,name} of options){
+   const pill=btn(name,()=>{selectedFolders=toggleFolder(selectedFolders,id);renderGrid();},'folder-pill');
+   pill.dataset.folder=id;pill.title=name;filters.append(pill);
+  }
+  if(focused){const next=[...filters.children].find(pill=>pill.dataset.folder===focused)||filters.firstElementChild;next?.focus();}
  }
- select.value=selectedFolder;
+ for(const pill of filters.children)pill.setAttribute('aria-pressed',String(pill.dataset.folder==='all'?!selectedFolders.length:selectedFolders.includes(pill.dataset.folder)));
  const note=$('#folder-status');
  const allowancePaused=[state.bookmarks?.message,state.bookmarks?.folder_error].includes('Spending allowance reached');
  note.textContent=state.cloud_error?'Folder status unavailable':allowancePaused?'X sync paused — spending limit reached':state.bookmarks?.folder_error?'Folder sync needs attention':!snapshot?.synced_at?'Folders haven’t synced yet':folders.length?'':'Create folders on X to organize your bookmarks.';
  note.title=allowancePaused?'New bookmarks and folder updates are paused by the app’s safety allowance. This estimate is not your actual X bill. See Library menu → Connections & Trash.':state.bookmarks?.folder_error||'Folder names and assignments come from X. Existing old-bookmark exclusions still apply.';
 }
-$('#folder-filter').addEventListener('change',e=>{selectedFolder=e.target.value;renderGrid();});
-function filteredItems(){return state.captures.filter(i=>!i.fixture&&i.kind===section&&(section!=='x_post'||inFolder(i,selectedFolder,state.bookmarks?.folder_snapshot))&&(!query||[i.title,i.description,author(i).name,author(i).handle,i.url].join(' ').toLowerCase().includes(query)));}
+function filteredItems(){return state.captures.filter(i=>!i.fixture&&i.kind===section&&(section!=='x_post'||inFolder(i,selectedFolders,state.bookmarks?.folder_snapshot))&&(!query||[i.title,i.description,author(i).name,author(i).handle,i.url].join(' ').toLowerCase().includes(query)));}
 function renderGrid(){if(!state)return;renderFolders();for(const c of gridCleanups.splice(0))c();resizeObserver.disconnect();const grid=$('#captures');grid.replaceChildren();grid.className=section==='x_post'?'masonry':'web-grid';const items=filteredItems();
-if(!items.length){grid.className='web-grid';const empty=el('div',null,'empty');empty.append(el('h2',query?'No matching references':selectedFolder!=='all'&&section==='x_post'?'No bookmarks in this folder':'Your collection starts here'),el('p',query?'Try another search.':selectedFolder!=='all'&&section==='x_post'?'Folder assignments update from X. Only bookmarks already included in your library appear here.':section==='x_post'?(window.libraryAPI?.cloud?'Import your local collection to bring your saved references here.':'New bookmarks on X will appear after the next sync.'):'Save a website with the browser extension.'));grid.append(empty);return;}
+if(!items.length){grid.className='web-grid';const empty=el('div',null,'empty');empty.append(el('h2',query?'No matching references':selectedFolders.length>0&&section==='x_post'?'No bookmarks in the selected folders':'Your collection starts here'),el('p',query?'Try another search.':selectedFolders.length>0&&section==='x_post'?'Folder assignments update from X. Only bookmarks already included in your library appear here.':section==='x_post'?(window.libraryAPI?.cloud?'Import your local collection to bring your saved references here.':'New bookmarks on X will appear after the next sync.'):'Save a website with the browser extension.'));grid.append(empty);return;}
 for(const item of items){const card=el('article',null,section==='x_post'?'card':'website-card');card.dataset.id=item.id;if(section==='x_post'){const surface=el('div',null,'card-surface');surface.append(mediaPreview(item,'grid'));const open=btn('',()=>openDetail(item.id,open),'open-card');open.setAttribute('aria-label',`Open reference: ${shortTitle(item)}`);surface.append(open);const count=albumItems(item).length;if(count>1){const badge=el('span',String(count),'album-count');badge.setAttribute('aria-label',`${count} media items`);surface.append(badge);}card.append(surface);grid.append(card);resizeObserver.observe(surface);}else{const image=el('a',null,'website-image');image.href=item.url;image.target='_blank';image.rel='noopener noreferrer';image.setAttribute('aria-label',`Visit ${item.title}`);image.append(mediaPreview(item,'grid'));const title=el('h2'),titleLink=el('a',item.title);titleLink.href=item.url;titleLink.target='_blank';titleLink.rel='noopener noreferrer';titleLink.title=item.title;title.append(titleLink);const url=el('a',new URL(item.url).hostname.replace(/^www\./,''),'website-url');url.href=item.url;url.target='_blank';url.rel='noopener noreferrer';card.append(image,title,url);if(window.libraryAPI?.cloud)card.append(actionMenu(`Actions for ${item.title}`,[['Move to Trash',async()=>{await api('/api/trash','POST',{id:item.id});await refresh();}]]));grid.append(card);}}
 }
 function syncSummary(){if(window.libraryAPI?.cloud){const b=state?.bookmarks;$('#sync-status').textContent=state?.cloud_error?'Cloud status unavailable':b?.enabled?`Cloud saves · Next X check ${new Date(b.next_check*1000).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}`:'Cloud saves · X checks paused';$('#sync-status').title=b?.message||'';return;}const c=state?.cloud_sync;const cloudLabel=document.querySelector('#cloud-status');if(cloudLabel)cloudLabel.textContent=c?.needs_sign_in?'Cloud · Sign in again':c?.enabled?(c.pending?`Cloud · ${c.pending} waiting`:'Cloud · Saved'):'Cloud · Connect or resume';const b=state?.bookmarks;if(!b){$('#sync-status').textContent='Saved locally';return;}$('#sync-status').textContent=b.enabled?'X sync on · Checks every 15 minutes':b.phase==='ready'?'X sync paused · Manage in Capture Lab':'Connect X in Capture Lab';$('#sync-status').title=b.message||'';}

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFolderSnapshot,updateFolders,folderSyncDue} from '../supabase/functions/library-service/folders.js';
-import {folderOptions,inFolder} from '../web/folders.js';
+import {folderOptions,inFolder,toggleFolder,validFolderSelection} from '../web/folders.js';
 const page = (data,next) => ({data,meta:next?{next_token:next}:{}});
 const folder = (id,name) => ({id,name});
 const post = id => ({id});
@@ -50,4 +50,21 @@ test('automatic folder reads are hourly; explicit sync/new bookmarks can force a
 test('filters handle multi-folder membership, source names literally, and all/unknown options',()=>{
  const s={folders:[{id:'1',name:'<script>UI</script>',post_ids:['10']},{id:'2',name:'Motion',post_ids:['10']}],covered_ids:['10','11'],synced_at:1};
  assert.equal(folderOptions(s)[0].name,'<script>UI</script>');assert.ok(inFolder({post_id:'10'},'1',s));assert.ok(inFolder({post_id:'10'},'2',s));assert.ok(inFolder({},'all',null));assert.equal(inFolder({post_id:'10'},'unfiled',s),false);assert.equal(inFolder({post_id:'10'},'3',s),false);
+});
+
+test('multiple selected folders form a union, including Unfiled, without duplicate cards',()=>{
+ const snapshot={folders:[{id:'1',name:'Motion',post_ids:['10','11']},{id:'2',name:'UI',post_ids:['11','12']},{id:'3',name:'Static',post_ids:['13']}],covered_ids:['10','11','12','13','14'],synced_at:1};
+ const items=['10','11','12','13','14','15'].map(post_id=>({post_id}));
+ const result=selection=>items.filter(item=>inFolder(item,selection,snapshot)).map(item=>item.post_id);
+ assert.deepEqual(result([]),['10','11','12','13','14','15']);
+ assert.deepEqual(result(['1','2']),['10','11','12']);
+ assert.deepEqual(result(['1','2','3']),['10','11','12','13']);
+ assert.deepEqual(result(['1','unfiled']),['10','11','14']);
+ assert.deepEqual(toggleFolder(['1','2'],'all'),[]);
+ assert.deepEqual(toggleFolder(['1'],'1'),[]);
+ assert.deepEqual(toggleFolder(['1'],'2'),['1','2']);
+ assert.deepEqual(toggleFolder(['1','2'],'1'),['2']);
+ assert.deepEqual(validFolderSelection(['1','2','gone'],snapshot),['1','2']);
+ assert.deepEqual(validFolderSelection(['gone'],snapshot),[]);
+ assert.deepEqual(validFolderSelection(['unfiled'],null),[]);
 });
