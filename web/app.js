@@ -134,7 +134,7 @@ function albumPreview(item){
  dialog.addEventListener('keydown',onKey);detailCleanups.push(()=>dialog.removeEventListener('keydown',onKey));
  gallery.append(track,counter);update();return gallery;
 }
-const resizeObserver=new ResizeObserver(entries=>{for(const {target} of entries){const card=target.parentElement;if(card?.parentElement?.classList.contains('masonry'))card.style.gridRowEnd=`span ${Math.ceil(target.getBoundingClientRect().height+20)}`;}});
+const resizeObserver=new ResizeObserver(entries=>{for(const {target} of entries){const card=target.parentElement;if(card?.parentElement?.classList.contains('masonry'))card.style.gridRowEnd=`span ${Math.ceil(target.getBoundingClientRect().height+12)}`;}});
 function renderFolders(){
  const bar=$('#folder-bar'),filters=$('#folder-filters');
  bar.hidden=section!=='x_post'||!window.libraryAPI?.cloud;
