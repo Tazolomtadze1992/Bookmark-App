@@ -213,3 +213,8 @@ html{scrollbar-gutter:stable}
  #close-detail{top:12px;left:16px}
  #detail .detail-stage{padding-inline:16px}
 }
+
+/* Expanded depth fades with the shared media transform, never after it lands. */
+#detail .detail-media,#detail .album-slide{position:relative;isolation:isolate}
+#detail .detail-stage .media-image,#detail .detail-stage .motion-wrap,#detail .detail-stage .text-preview{box-shadow:none}
+.detail-shadow{position:absolute;z-index:-1;pointer-events:none;box-shadow:0 2px 6px oklch(0 0 0 / .04),0 12px 28px oklch(0 0 0 / .06)}
