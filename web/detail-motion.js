@@ -11,7 +11,10 @@ export function createDetailMotion(dialog, sourceRect) {
   const reduced=matchMedia('(prefers-reduced-motion: reduce)');
   let animations=[],generation=0,phase='idle',closeResolve=null,shadowObserver=null;
   const media=()=>dialog.querySelector('.detail-media');
-  const cover=()=>dialog.querySelector('.album-slide .media-image,.album-slide .motion-video,.detail-media>.motion-wrap,.detail-media>.media-image,.detail-media>.text-preview');
+  const track=()=>dialog.querySelector('.album-track');
+  const slides=()=>[...dialog.querySelectorAll('.album-slide')];
+  const primary=()=>slides()[0]||media();
+  const cover=()=>slides()[0]?.querySelector('.media-image,.motion-video,.text-preview')||dialog.querySelector('.detail-media>.motion-wrap,.detail-media>.media-image,.detail-media>.text-preview');
   const panels=()=>[dialog.querySelector('#close-detail'),dialog.querySelector('#detail-footer')];
   const shadows=()=>[...dialog.querySelectorAll('.detail-shadow')];
   function prepareShadows(){
@@ -29,45 +32,90 @@ export function createDetailMotion(dialog, sourceRect) {
     }};
     layout();shadowObserver=new ResizeObserver(layout);for(const {target,container} of pairs){shadowObserver.observe(target);shadowObserver.observe(container);}
   }
-  function stop(){generation++;for(const a of animations)a.cancel();animations=[];dialog.classList.remove('detail-moving');const m=media();if(m)m.style.transformOrigin='';}
-  function animate(node,frames,duration,easing='cubic-bezier(.22,1,.36,1)',pseudoElement) {if(node)animations.push(node.animate(frames,{duration,easing,fill:'both',...(pseudoElement?{pseudoElement}:{})}));}
-  function geometry(){const from=sourceRect(),to=cover()?.getBoundingClientRect(),box=media()?.getBoundingClientRect();if(!from||from.bottom<=0||from.top>=innerHeight)return null;return cardTransform(from,to,box);}
-  function completed(token,callback){Promise.allSettled(animations.map(a=>a.finished)).then(()=>{if(token===generation){stop();phase='idle';callback?.();}});}
+  function stop(){
+    generation++;
+    for(const a of animations)a.cancel();
+    animations=[];
+    dialog.classList.remove('detail-moving');
+    track()?.classList.remove('album-morphing');
+    for(const node of [media(),...slides()])if(node)node.style.transformOrigin='';
+  }
+  function animate(node,frames,duration,easing='cubic-bezier(.22,1,.36,1)',pseudoElement,delay=0){
+    if(node)animations.push(node.animate(frames,{duration,delay,easing,fill:'both',...(pseudoElement?{pseudoElement}:{})}));
+  }
+  function geometry(from=sourceRect()){
+    const target=cover(),container=primary();
+    if(!from||from.bottom<=0||from.top>=innerHeight||!target||!container)return null;
+    return cardTransform(from,target.getBoundingClientRect(),container.getBoundingClientRect());
+  }
+  function completed(token,callback){
+    Promise.allSettled(animations.map(a=>a.finished)).then(()=>{
+      if(token!==generation)return;
+      // Close the top layer before releasing filled effects: neighbors stay invisible at handoff.
+      callback?.();stop();phase='idle';
+    });
+  }
   function open(from,enabled=true){
-    stop();prepareShadows();phase='opening';if(!enabled){phase='idle';return;}
-    const m=media(),target=cover(),g=target&&m?cardTransform(from,target.getBoundingClientRect(),m.getBoundingClientRect()):null;
-    const duration=reduced.matches?120:320;
-    if(m){if(g&&!reduced.matches){m.style.transformOrigin=g.origin;animate(m,[{transform:g.transform},{transform:'none'}],duration);}else animate(m,[{opacity:0},{opacity:1}],duration,'ease');}
+    stop();prepareShadows();phase='opening';
+    if(!enabled){phase='idle';return;}
+    const target=primary(),g=geometry(from),duration=reduced.matches?120:320;
+    if(target){
+      if(g&&!reduced.matches){
+        track()?.classList.add('album-morphing');
+        target.style.transformOrigin=g.origin;
+        animate(target,[{transform:g.transform},{transform:'none'}],duration);
+      }else animate(target,[{opacity:0},{opacity:1}],duration,'ease');
+    }
+    // The remaining attachments have no matching grid object. Reveal them in their own space.
+    for(const neighbor of slides().slice(1))animate(neighbor,
+      [{opacity:0,transform:reduced.matches?'none':'translateX(8px)'},{opacity:1,transform:'none'}],
+      reduced.matches?120:240,'cubic-bezier(.22,1,.36,1)',undefined,reduced.matches?0:40);
     for(const shadow of shadows())animate(shadow,[{opacity:0},{opacity:1}],duration);
-    for(const panel of panels())animate(panel,[{opacity:0,transform:'none'},{opacity:1,transform:'none'}],reduced.matches?120:280);
+    for(const panel of panels())animate(panel,[{opacity:0},{opacity:1}],reduced.matches?120:280);
     animate(dialog,[{opacity:0},{opacity:1}],reduced.matches?120:240,'ease','::backdrop');
-    animate(dialog.querySelector('.album-controls'),[{opacity:0},{opacity:1}],duration,'ease');
     dialog.classList.add('detail-moving');completed(generation);
   }
   function close(enabled=true){
-    // Sample the current frame before cancelling: rapid close continues from the visible position.
-    const nodes=[media(),...panels(),dialog.querySelector('.album-controls')].filter(Boolean);
-    const frames=nodes.map(node=>({node,transform:getComputedStyle(node).transform,opacity:getComputedStyle(node).opacity}));
-    const shadowFrames=shadows().map(node=>({node,opacity:getComputedStyle(node).opacity}));
-    const oldOrigin=media()?.style.transformOrigin,backdropOpacity=getComputedStyle(dialog,'::backdrop').opacity;
-    stop();phase='closing';if(!enabled){phase='idle';dialog.close();return Promise.resolve();}
-    const m=media(),g=geometry(),track=dialog.querySelector('.album-track');
-    // A different album slide must not turn into the cover image on its way back.
-    const coverVisible=!track||track.scrollLeft<2;
-    const morph=g&&coverVisible&&!reduced.matches;
-    if(m)m.style.transformOrigin=oldOrigin||g?.origin||'';
-    const duration=reduced.matches?100:260;
-    for(const frame of frames){
-      const isMedia=frame.node===m;
-      const to=isMedia&&morph?{transform:g.transform,opacity:1}:{opacity:0,transform:isMedia||reduced.matches?'none':frame.node.classList.contains('detail-info')?'translateX(-28px)':'none'};
-      animate(frame.node,[{transform:frame.transform,opacity:frame.opacity},to],duration,isMedia?'cubic-bezier(.22,1,.36,1)':'ease');
+    // Sample each independently moving part before cancelling an interrupted entrance.
+    const album=track(),coverVisible=!album||album.scrollLeft<2;
+    const target=coverVisible?primary():media();
+    const neighbors=coverVisible?slides().slice(1):[];
+    const sample=node=>({node,transform:getComputedStyle(node).transform,opacity:getComputedStyle(node).opacity});
+    const mainFrame=target?sample(target):null,neighborFrames=neighbors.map(sample),panelFrames=panels().filter(Boolean).map(sample);
+    const shadowFrames=shadows().map(sample),oldOrigin=target?.style.transformOrigin;
+    const backdropOpacity=getComputedStyle(dialog,'::backdrop').opacity;
+    stop();phase='closing';
+    if(!enabled){dialog.close();phase='idle';return Promise.resolve();}
+    const g=geometry(),morph=g&&coverVisible&&!reduced.matches,duration=reduced.matches?100:260;
+    if(mainFrame){
+      if(morph){album?.classList.add('album-morphing');target.style.transformOrigin=oldOrigin||g.origin;}
+      animate(target,[{transform:mainFrame.transform,opacity:mainFrame.opacity},
+        morph?{transform:g.transform,opacity:1}:{transform:'none',opacity:0}],duration);
     }
-    for(const {node,opacity} of shadowFrames)animate(node,[{opacity},{opacity:0}],duration);
+    for(const frame of neighborFrames)animate(frame.node,
+      [{opacity:frame.opacity,transform:frame.transform},{opacity:0,transform:reduced.matches?'none':'translateX(8px)'}],
+      reduced.matches?100:120);
+    for(const frame of panelFrames)animate(frame.node,[{opacity:frame.opacity},{opacity:0}],duration,'ease');
+    for(const frame of shadowFrames)animate(frame.node,[{opacity:frame.opacity},{opacity:0}],duration);
     animate(dialog,[{opacity:backdropOpacity},{opacity:0}],duration,'ease','::backdrop');
     dialog.classList.add('detail-moving');
-    return new Promise(resolve=>{closeResolve=resolve;completed(generation,()=>{dialog.close();closeResolve?.();closeResolve=null;});});
+    return new Promise(resolve=>{
+      closeResolve=resolve;
+      completed(generation,()=>{dialog.close();closeResolve?.();closeResolve=null;});
+    });
   }
-  function settle(){if(!dialog.open){shadowObserver?.disconnect();shadowObserver=null;}const closing=phase==='closing';stop();phase='idle';if(closing){dialog.close();closeResolve?.();closeResolve=null;}}
+  function settle(){
+    const closing=phase==='closing';
+    if(closing)dialog.close();
+    stop();phase='idle';
+    if(!dialog.open){shadowObserver?.disconnect();shadowObserver=null;}
+    if(closing){closeResolve?.();closeResolve=null;}
+  }
+  function beforeNavigate(){
+    if(phase==='closing')return false;
+    if(phase==='opening')settle();
+    return true;
+  }
   window.addEventListener('resize',settle);reduced.addEventListener('change',settle);
-  return {open,close,settle};
+  return {open,close,settle,beforeNavigate};
 }
