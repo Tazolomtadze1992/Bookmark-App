@@ -9,7 +9,7 @@ export function cardTransform(from, to, container) {
 }
 export function createDetailMotion(dialog, sourceRect) {
   const reduced=matchMedia('(prefers-reduced-motion: reduce)');
-  let animations=[],generation=0,phase='idle',closeResolve=null,shadowObserver=null;
+  let animations=[],generation=0,phase='idle',closeResolve=null,shadowObserver=null,returnLayer=null;
   const media=()=>dialog.querySelector('.detail-media');
   const track=()=>dialog.querySelector('.album-track');
   const slides=()=>[...dialog.querySelectorAll('.album-slide')];
@@ -20,7 +20,7 @@ export function createDetailMotion(dialog, sourceRect) {
   function prepareShadows(){
     shadowObserver?.disconnect();for(const shadow of shadows())shadow.remove();
     const pairs=[...dialog.querySelectorAll('.detail-media .media-image,.detail-media .motion-video,.detail-media .text-preview')].map(target=>{
-      const container=target.closest('.album-slide')||media(),shadow=document.createElement('span');
+      const container=target.closest('.album-frame')||target.closest('.album-slide')||media(),shadow=document.createElement('span');
       shadow.className='detail-shadow';shadow.setAttribute('aria-hidden','true');container.append(shadow);
       return {target,container,shadow};
     });
@@ -36,6 +36,7 @@ export function createDetailMotion(dialog, sourceRect) {
     generation++;
     for(const a of animations)a.cancel();
     animations=[];
+    returnLayer?.remove();returnLayer=null;if(track())track().style.visibility='';
     dialog.classList.remove('detail-moving');
     track()?.classList.remove('album-morphing');
     for(const node of [media(),...slides()])if(node)node.style.transformOrigin='';
@@ -77,7 +78,12 @@ export function createDetailMotion(dialog, sourceRect) {
   }
   function close(enabled=true){
     // Sample each independently moving part before cancelling an interrupted entrance.
-    const album=track(),coverVisible=!album||album.scrollLeft<2;
+    const album=track(),browsing=!!album?.querySelector('.album-frame')?.getAnimations().length;
+    const coverVisible=!album||(album.scrollLeft<2&&!browsing);
+    const active=slides()[Number(album?.dataset.activeIndex)||0]?.querySelector('.media-image,.motion-video,.text-preview');
+    const activeRect=active?.getBoundingClientRect();
+    // Freeze browsing only after sampling its on-screen position (including interrupted navigation).
+    album?.dispatchEvent(new Event('album-freeze'));
     const target=coverVisible?primary():media();
     const neighbors=coverVisible?slides().slice(1):[];
     const sample=node=>({node,transform:getComputedStyle(node).transform,opacity:getComputedStyle(node).opacity});
@@ -87,7 +93,24 @@ export function createDetailMotion(dialog, sourceRect) {
     stop();phase='closing';
     if(!enabled){dialog.close();phase='idle';return Promise.resolve();}
     const g=geometry(),morph=g&&coverVisible&&!reduced.matches,duration=reduced.matches?100:260;
-    if(mainFrame){
+    let returning=false;
+    if(album&&!coverVisible&&!reduced.matches&&activeRect&&g){
+      const frame=slides()[0].querySelector('.album-frame'),asset=cover();
+      const width=frame.offsetWidth,height=frame.offsetHeight,assetWidth=asset.offsetWidth,assetHeight=asset.offsetHeight;
+      if(width&&height&&assetWidth&&assetHeight){
+        // The reference restores the cover at the current image's center, then returns that
+        // single object to the grid. Never scroll the whole album back through its other images.
+        returnLayer=document.createElement('div');returnLayer.className='album-return';returnLayer.setAttribute('aria-hidden','true');
+        Object.assign(returnLayer.style,{left:`${activeRect.left+activeRect.width/2-width/2}px`,top:`${activeRect.top+activeRect.height/2-height/2}px`,width:`${width}px`,height:`${height}px`});
+        frame.style.transform='none';returnLayer.append(frame);dialog.append(returnLayer);album.style.visibility='hidden';
+        const coverRect=asset.getBoundingClientRect(),to=cardTransform(sourceRect(),coverRect,returnLayer.getBoundingClientRect());
+        const scale=Math.min(activeRect.width/assetWidth,activeRect.height/assetHeight);
+        returnLayer.style.transformOrigin=to.origin;
+        animate(returnLayer,[{transform:`scale(${scale})`},{transform:to.transform}],duration);
+        returning=true;
+      }
+    }
+    if(mainFrame&&!returning){
       if(morph){album?.classList.add('album-morphing');target.style.transformOrigin=oldOrigin||g.origin;}
       animate(target,[{transform:mainFrame.transform,opacity:mainFrame.opacity},
         morph?{transform:g.transform,opacity:1}:{transform:'none',opacity:0}],duration);
