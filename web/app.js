@@ -149,7 +149,7 @@ function renderDetail(){
  detailMotion.settle();for(const c of detailCleanups.splice(0))c();
  const item=state.captures.find(i=>i.id===activeId);if(!item){dialog.close();return;}
  dialog.setAttribute('aria-label',`Bookmark: ${shortTitle(item)}`);
- const source=sourceLink(item,'source-link','View on X');source.prepend(document.createTextNode('View on X'));$('#detail-footer').replaceChildren(source);
+ const source=sourceLink(item,'source-link','View on X');source.replaceChildren(document.createTextNode('View on'),icon('twitter'));$('#detail-footer').replaceChildren(source);
  const media=el('div',null,'detail-media'),album=albumItems(item).length>1;
  $('#detail-stage').classList.toggle('has-album',album);media.append(album?albumPreview(item):mediaPreview(item,'detail'));$('#detail-stage').replaceChildren(media);
 }
