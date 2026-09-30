@@ -1,7 +1,7 @@
 // Read-only X folder mirror. Publish only a complete traversal; never import posts here.
-export const FOLDER_INTERVAL_SECONDS = 3600;
+export const FOLDER_INTERVAL_SECONDS = 86400;
 export function folderSyncDue(state, force = false, now = Date.now() / 1000) {
-  return force || now - (state.folder_last_attempt || 0) >= FOLDER_INTERVAL_SECONDS;
+  return force || !state.folder_last_attempt || now - (state.folder_last_attempt || 0) >= FOLDER_INTERVAL_SECONDS;
 }
 function pageRows(result) {
   // Verified against the real endpoint: HTTP 200 with {} means no folders.

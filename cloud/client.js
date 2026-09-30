@@ -1,3 +1,4 @@
+import {syncNotice} from '../web/sync-status.js';
 import {createClient} from '@supabase/supabase-js';
 const db=createClient(SUPABASE_URL,SUPABASE_KEY);
 let user;
@@ -61,7 +62,8 @@ const summary=document.createElement('summary');summary.textContent='Connections
 const panel=document.createElement('div');panel.className='cloud-panel';
 const report=document.createElement('p');report.setAttribute('role','status');
 function action(label,fn){const button=document.createElement('button');button.type='button';button.textContent=label;button.setAttribute('aria-label',label);button.addEventListener('click',async()=>{button.disabled=true;try{await fn();}catch(e){report.textContent=e.message;}finally{button.disabled=false;}});button.className='menu-item';panel.append(button);return button;}
-async function connectionStatus(){const status=await cloudRequest('/status');report.textContent=status?`${status.enabled?'X checks on':'X checks paused'} · ${status.message==='Spending allowance reached'?'Safety allowance reached. New bookmarks and folder updates are paused; your saved collection is unchanged.':status.message}${status.enabled&&status.next_check?' Next scheduled check: '+new Date(status.next_check*1000).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})+'.':''}${status.folder_error&&status.folder_error!==status.message?' · Folders: '+status.folder_error:''} · $${((status.reserved_units||0)/1000).toFixed(3)} of $${((status.budget_units||3000)/1000).toFixed(2)} allowance reserved (conservative estimate, not your actual X bill).`:'X cloud connection is not ready yet.';}
+async function connectionStatus(){const status=await cloudRequest('/status');report.textContent=status?`${syncNotice(status)}. ${status.message||''} · $${((status.allowance_used_units??status.reserved_units??0)/1000).toFixed(3)} of $${((status.budget_units||3000)/1000).toFixed(2)} ${status.budget_mode==='monthly'?'monthly ':''}allowance reserved (conservative estimate, not your actual X bill).${status.budget_mode==='monthly'?' Renews '+new Date(status.budget_reset_at*1000).toLocaleDateString()+'.':''} Bookmarks are checked every ${(status.check_interval_seconds||900)/60} minutes. Folder moves are checked daily and when new bookmarks arrive.`:'X cloud connection is not ready yet.';}
+
 action('Connect extension',async()=>{
  if(document.documentElement.dataset.libraryExtension!=='cloud-v1')throw Error('Reload the updated Reference Library extension in Chrome, then reload this page.');
  const ready=new Promise((resolve,reject)=>{const timer=setTimeout(()=>{window.removeEventListener('message',listener);reject(Error('Extension did not respond. Reload it and try again.'));},10000);function listener(event){if(event.source===window&&event.origin===location.origin&&event.data?.type==='library-connected'){clearTimeout(timer);window.removeEventListener('message',listener);event.data.ok?resolve(event.data):reject(Error('Could not connect the extension.'));}}window.addEventListener('message',listener);});
@@ -69,8 +71,8 @@ action('Connect extension',async()=>{
 });
 action('Check X now',async()=>{report.textContent='Checking X…';const result=await cloudRequest('/check');report.textContent=result.message;window.dispatchEvent(new Event('library-refresh'));});
 action('Sync X folders now',async()=>{report.textContent='Syncing X folders…';const result=await cloudRequest('/folders/check');report.textContent=result.message;window.dispatchEvent(new Event('library-refresh'));});
-action('Pause X checks',async()=>{await cloudRequest('/control',{enabled:false});await connectionStatus();});
-action('Resume X checks',async()=>{await cloudRequest('/control',{enabled:true});await connectionStatus();});
+action('Pause X checks',async()=>{await cloudRequest('/control',{enabled:false});await connectionStatus();window.dispatchEvent(new Event('library-refresh'));});
+action('Resume X checks',async()=>{await cloudRequest('/control',{enabled:true});await connectionStatus();window.dispatchEvent(new Event('library-refresh'));});
 action('Reconnect X',async()=>{const result=await cloudRequest('/reconnect');location.assign(result.url);});
 action('Disconnect extensions',async()=>{await cloudRequest('/device/revoke');report.textContent='Extension connections revoked. Pending saves stay in their browser queues.';});
 const trash=document.createElement('div');trash.className='trash-list';

@@ -1,6 +1,7 @@
 import {createClient} from 'npm:@supabase/supabase-js@2.117.2';
 import {SCOPES,newPrefix,projectPost,normalise,digest} from './logic.js';
 import {updateFolders,folderSyncDue} from './folders.js';
+import {XRequestError,retryTime,failurePatch,bookmarkIds,readBookmarkWindow} from './sync-policy.js';
 const ORIGIN='https://bookmark-app-nu-seven.vercel.app';
 const URL_BASE=Deno.env.get('SUPABASE_URL')!;
 const db=createClient(URL_BASE,Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,{auth:{persistSession:false,autoRefreshToken:false}});
@@ -9,7 +10,7 @@ async function rpc(action:string,owner:string|null=null,payload:object={}){const
 function response(body:unknown,status=200){return new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json','Cache-Control':'no-store','Access-Control-Allow-Origin':ORIGIN,'Access-Control-Allow-Headers':'authorization,apikey,content-type,x-device-token','Access-Control-Allow-Methods':'POST,OPTIONS','Vary':'Origin'}});}
 async function xRequest(path:string,token?:string,form?:Record<string,string>){
  const r=await fetch('https://api.x.com'+path,{method:form?'POST':'GET',redirect:'error',signal:AbortSignal.timeout(15000),headers:form?{'Content-Type':'application/x-www-form-urlencoded'}:{Authorization:'Bearer '+token},body:form?new URLSearchParams(form):undefined});
- if(!r.ok){await r.body?.cancel();throw Error(r.status===401||r.status===403?'Reconnect X to continue.':r.status===429?'X rate limit reached. Checks paused.':`X request failed (${r.status}). Checks paused.`);}
+ if(!r.ok){await r.body?.cancel();throw new XRequestError(r.status,retryTime(r.headers));}
  const reader=r.body!.getReader();let text='',size=0;const decoder=new TextDecoder();
  while(true){const {done,value}=await reader.read();if(done)break;size+=value.length;if(size>3000000){await reader.cancel();throw Error('X response exceeded the size limit.');}text+=decoder.decode(value,{stream:true});}
  const result=JSON.parse(text+decoder.decode());if(result.errors?.length)throw Error('Some X posts are unavailable. Checkpoint preserved.');return result;
@@ -19,7 +20,7 @@ function credentials(token:any,client_id:string,previous:any={}){
  if(!SCOPES.split(' ').every(s=>scopes.includes(s))||scopes.some(s=>s.endsWith('.write'))||!token.access_token)throw Error('X did not grant the required read-only permissions.');
  return {client_id,access_token:token.access_token,refresh_token:token.refresh_token||previous.refresh_token,scope:token.scope,expires_at:Date.now()/1000+Number(token.expires_in||7200)};
 }
-function ids(result:any){if(!Array.isArray(result.data)&&result.meta?.result_count!==0)throw Error('Unexpected X response. Checkpoint preserved.');const list=(result.data||[]).map((p:any)=>p.id);if(!list.every((id:any)=>typeof id==='string'&&/^\d{1,25}$/.test(id)))throw Error('Invalid X post identifiers.');return list;}
+const ids=bookmarkIds;
 async function writePost(owner:string,post:any,includes:any,refresh=false){
  const url=`https://x.com/i/status/${post.id}`,id=(await digest(url)).slice(0,32),now=new Date().toISOString();
  const {data:existing,error}=await db.from('library_references').select('id,record,deleted_at').eq('user_id',owner).eq('id',id).maybeSingle();if(error)throw Error('Could not read the saved reference.');
@@ -32,15 +33,16 @@ async function writePost(owner:string,post:any,includes:any,refresh=false){
 }
 async function run(owner:string,manual=false,refreshId?:string,foldersOnly=false){
  const work=await rpc('claim',owner,{manual});if(!work)return {message:'A check is already running or was just completed.'};
- const {lease,state}=work;let creds=work.credentials;
+ const {lease,state}=work;let creds=work.credentials,rotating=false;
  const finish=(patch:object)=>rpc('finish',owner,{lease,state:patch});
  try{
   if(!state.ready_at||!state.account_verified||!Array.isArray(state.baseline_ids)||!Array.isArray(state.anchors))throw Error('The historical-bookmark exclusion is incomplete. No bookmarks imported.');
-  if(!creds.access_token)throw Error('Reconnect X to continue.');
+  if(!creds.access_token||state.refresh_pending)throw new XRequestError(401);
   if(creds.expires_at<Date.now()/1000+60){
    if(!creds.refresh_token)throw Error('Reconnect X to continue.');
+   await rpc('refresh_start',owner,{lease});rotating=true;
    const token=await xRequest('/2/oauth2/token',undefined,{grant_type:'refresh_token',refresh_token:creds.refresh_token,client_id:creds.client_id});
-   creds=credentials(token,creds.client_id,creds);await rpc('credentials',owner,{lease,credentials:creds});
+   creds=credentials(token,creds.client_id,creds);await rpc('credentials',owner,{lease,credentials:creds});rotating=false;
   }
   const get=async(path:string,units:number)=>{await rpc('reserve',owner,{lease,units});return xRequest(path,creds.access_token);};
   const lookup=async(list:string[])=>get('/2/tweets?'+new URLSearchParams({ids:list.join(','),'tweet.fields':'text,author_id,created_at,attachments',expansions:'attachments.media_keys,author_id','media.fields':'type,url,preview_image_url,variants,width,height,duration_ms,alt_text','user.fields':'name,username,profile_image_url'}),list.length*15);
@@ -64,21 +66,14 @@ async function run(owner:string,manual=false,refreshId?:string,foldersOnly=false
    const result=await lookup([refreshId]);if(ids(result).length!==1||result.data[0].id!==refreshId)throw Error('This post is no longer available.');
    await writePost(owner,result.data[0],result.includes,true);await finish({message:'Preview refreshed from X.'});return {message:'Preview refreshed.'};
   }
-  let list:string[]=[],pagination='',used=new Set();
-  for(let page=0;page<5;page++){
-   const params=new URLSearchParams({max_results:'10'});if(pagination)params.set('pagination_token',pagination);
-   const result=await get(`/2/users/${state.user_id}/bookmarks?`+params,50);list.push(...ids(result));pagination=result.meta?.next_token||'';
-   if(list.some(id=>state.anchors.includes(id))||!pagination)break;
-   if(used.has(pagination))throw Error('Repeated X page. Checkpoint preserved.');used.add(pagination);
-  }
-  if(!state.anchors.length&&pagination)throw Error('Incomplete bookmark window. No older posts imported.');
-  const candidates=newPrefix(list,state.anchors,state.baseline_ids,state.seen_ids||[]);
+  const {list,unchanged}=await readBookmarkWindow({get,state});
+  const candidates=unchanged?[]:newPrefix(list,state.anchors,state.baseline_ids,state.seen_ids||[]);
   if(candidates.length>20)throw Error('More than 20 new bookmarks found. Checks paused for review.');
   if(candidates.length){const result=await lookup(candidates);const returned=ids(result);if(returned.length!==candidates.length||!candidates.every(id=>returned.includes(id)))throw Error('Some posts are unavailable. Checkpoint preserved.');for(const post of result.data)await writePost(owner,post,result.includes);}
   const folderPatch=await syncFolders(manual||candidates.length>0);
   const message=`Last check: ${candidates.length} new bookmark(s). Old bookmarks remain excluded.`;
-  await finish({...folderPatch,seen_ids:[...new Set([...(state.seen_ids||[]),...candidates])],anchors:list.length?list.slice(0,10):state.anchors,last_check:Date.now()/1000,imported:(state.imported||0)+candidates.length,message});return {message};
- }catch(e){const message=e instanceof Error?e.message:'Cloud check failed. Checkpoint preserved.';await finish({enabled:false,message});throw Error(message);}
+  await finish({...folderPatch,seen_ids:[...new Set([...(state.seen_ids||[]),...candidates])],anchors:list.length?list.slice(0,10):state.anchors,last_check:Date.now()/1000,sync_issue:'',consecutive_failures:0,retry_at:0,imported:(state.imported||0)+candidates.length,message});return {message};
+ }catch(e){const patch=failurePatch(e,state,{rotating});await finish(patch);throw Error(patch.message);}
 }
 async function capture(owner:string,body:any){
  const {url,post_id}=normalise(body.url),id=(await digest(url)).slice(0,32),now=new Date().toISOString();

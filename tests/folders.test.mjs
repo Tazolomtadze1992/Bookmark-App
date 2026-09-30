@@ -43,8 +43,8 @@ test('repeated page tokens, duplicate IDs, oversized responses and scan limits f
  await assert.rejects(readFolderSnapshot({...transport([page([folder('1','M')])]),userId:'99',knownIds:[],maxRequests:1}),/limit/);
  let clock=0;await assert.rejects(readFolderSnapshot({...transport([]),userId:'99',knownIds:[],now:()=>clock+=50000}),/limit/);
 });
-test('automatic folder reads are hourly; explicit sync/new bookmarks can force a refresh',async()=>{
- assert.equal(folderSyncDue({folder_last_attempt:100},false,3699),false);assert.equal(folderSyncDue({folder_last_attempt:100},false,3700),true);assert.equal(folderSyncDue({folder_last_attempt:100},true,101),true);
+test('automatic folder reads are daily; explicit sync/new bookmarks can force a refresh',async()=>{
+ assert.equal(folderSyncDue({folder_last_attempt:100},false,86499),false);assert.equal(folderSyncDue({folder_last_attempt:100},false,86500),true);assert.equal(folderSyncDue({folder_last_attempt:100},true,101),true);
  const patch=await updateFolders({state:{folder_last_attempt:3999},knownIds:[],get:()=>{throw Error('should not request');},now:()=>4000000});assert.deepEqual(patch,{});
 });
 test('filters handle multi-folder membership, source names literally, and all/unknown options',()=>{
