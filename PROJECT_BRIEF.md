@@ -715,3 +715,14 @@ Production verification: Vercel serves the exact tested motion module from `d58a
 Restyled expanded-view Close and source controls as translucent black pills with 12px backdrop blur, white foreground and subtle shadow layers. Close is visually 32×32px; the source pill is 32px tall, reads “View on” followed by the owner's supplied X mark, and uses 12px left/10px right padding with a 6px text/icon gap. Both match the navigation's Inter 13px/500 typography. Hover slightly darkens the surface, pressing scales to .96, and reduced motion disables that scale. Invisible 6px hit-area extensions preserve at least 44px targets; keyboard focus stays visibly outlined. The original “View on X” accessible label and exact-post link remain.
 
 Validation: Chrome's generated-media preview confirmed both dimensions, font properties, padding, blur and icon path via computed styles, with a visual screenshot check. JavaScript syntax, diff and production build checks passed. This styling-only change makes no X API or collection changes.
+
+
+### Wheel, backdrop and control choreography — September 30, 2026
+
+The scoped diagnosis and implementation plan are in `plans/002-viewer-interactions.md`. Mouse wheel and trackpad wheel events now use the same 300ms transform animation as neighbor clicks, including current-position sampling on reversal. Both axes and line/page wheel units are normalized; each gesture advances one attachment, its momentum tail cannot skip the album, and pinch zoom remains untouched. Touch scrolling and instant arrow-key navigation remain.
+
+Empty areas throughout an expanded album now dismiss it, including gaps between attachments. Actual images, videos and controls remain interactive. Pointer movement, cancellation and dragging from media into blank space do not dismiss the viewer.
+
+Close and the actual source pill now enter together with a restrained 4px movement and 180ms fade after 40ms, settling before the media completes its opening. They exit in 100ms, before the 260ms card return finishes. Interrupted closing samples both opacity and position. Reduced motion uses stationary 100ms/80ms fades. The footer wrapper is no longer animated.
+
+Controlled Chrome validation used generated media, with 23 interaction checks and nine control checks passing in normal mode; 22 interaction checks and eleven control checks passed with injected reduced motion. Tests covered wheel/click midpoint parity, momentum, direction reversal, pinch zoom, edge behavior, blank wrappers, protected media/drag actions, early exit and interrupted opening. The existing 21-check viewer regression passed in both normal and injected reduced-motion modes. Paused entrance/exit frames were visually inspected. All 27 existing JavaScript tests and the real-config production build passed. No new X requests, sync changes or allowance changes were made. Physical mobile/Safari testing was not performed.

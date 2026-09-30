@@ -15,7 +15,9 @@ export function createDetailMotion(dialog, sourceRect) {
   const slides=()=>[...dialog.querySelectorAll('.album-slide')];
   const primary=()=>slides()[0]||media();
   const cover=()=>slides()[0]?.querySelector('.media-image,.motion-video,.text-preview')||dialog.querySelector('.detail-media>.motion-wrap,.detail-media>.media-image,.detail-media>.text-preview');
-  const panels=()=>[dialog.querySelector('#close-detail'),dialog.querySelector('#detail-footer')];
+  const panels=()=>[dialog.querySelector('#close-detail'),dialog.querySelector('#detail-footer .source-link')];
+  const panelOffset=node=>`translateY(${node.id==='close-detail'?-4:4}px)`;
+  const panelEasing='cubic-bezier(.25,.46,.45,.94)';
   const shadows=()=>[...dialog.querySelectorAll('.detail-shadow')];
   function prepareShadows(){
     shadowObserver?.disconnect();for(const shadow of shadows())shadow.remove();
@@ -40,6 +42,7 @@ export function createDetailMotion(dialog, sourceRect) {
     dialog.classList.remove('detail-moving');
     track()?.classList.remove('album-morphing');
     for(const node of [media(),...slides()])if(node)node.style.transformOrigin='';
+    for(const panel of panels())if(panel)panel.style.pointerEvents='';
   }
   function animate(node,frames,duration,easing='cubic-bezier(.22,1,.36,1)',pseudoElement,delay=0){
     if(node)animations.push(node.animate(frames,{duration,delay,easing,fill:'both',...(pseudoElement?{pseudoElement}:{})}));
@@ -72,7 +75,9 @@ export function createDetailMotion(dialog, sourceRect) {
       [{opacity:0,transform:reduced.matches?'none':'translateX(8px)'},{opacity:1,transform:'none'}],
       reduced.matches?120:240,'cubic-bezier(.22,1,.36,1)',undefined,reduced.matches?0:40);
     for(const shadow of shadows())animate(shadow,[{opacity:0},{opacity:1}],duration);
-    for(const panel of panels())animate(panel,[{opacity:0},{opacity:1}],reduced.matches?120:280);
+    for(const panel of panels().filter(Boolean))animate(panel,
+      reduced.matches?[{opacity:0},{opacity:1}]:[{opacity:0,transform:panelOffset(panel)},{opacity:1,transform:'none'}],
+      reduced.matches?100:180,panelEasing,undefined,reduced.matches?0:40);
     animate(dialog,[{opacity:0},{opacity:1}],reduced.matches?120:240,'ease','::backdrop');
     dialog.classList.add('detail-moving');completed(generation);
   }
@@ -118,7 +123,12 @@ export function createDetailMotion(dialog, sourceRect) {
     for(const frame of neighborFrames)animate(frame.node,
       [{opacity:frame.opacity,transform:frame.transform},{opacity:0,transform:reduced.matches?'none':'translateX(8px)'}],
       reduced.matches?100:120);
-    for(const frame of panelFrames)animate(frame.node,[{opacity:frame.opacity},{opacity:0}],duration,'ease');
+    for(const frame of panelFrames){
+      frame.node.style.pointerEvents='none';
+      animate(frame.node,reduced.matches?[{opacity:frame.opacity},{opacity:0}]:
+        [{opacity:frame.opacity,transform:frame.transform},{opacity:0,transform:panelOffset(frame.node)}],
+        reduced.matches?80:100,panelEasing);
+    }
     for(const frame of shadowFrames)animate(frame.node,[{opacity:frame.opacity},{opacity:0}],duration);
     animate(dialog,[{opacity:backdropOpacity},{opacity:0}],duration,'ease','::backdrop');
     dialog.classList.add('detail-moving');
