@@ -12,7 +12,7 @@ export function createDetailMotion(dialog, sourceRect) {
   let animations=[],generation=0,phase='idle',closeResolve=null;
   const media=()=>dialog.querySelector('.detail-media');
   const cover=()=>dialog.querySelector('.album-slide .media-image,.album-slide .motion-video,.detail-media>.motion-wrap,.detail-media>.media-image,.detail-media>.text-preview');
-  const panels=()=>matchMedia('(max-width:760px)').matches?[dialog.querySelector('.detail-nav'),dialog.querySelector('#detail-copy')]:[dialog.querySelector('.detail-info')];
+  const panels=()=>[dialog.querySelector('#close-detail'),dialog.querySelector('#detail-footer')];
   function stop(){generation++;for(const a of animations)a.cancel();animations=[];dialog.classList.remove('detail-moving');const m=media();if(m)m.style.transformOrigin='';}
   function animate(node,frames,duration,easing='cubic-bezier(.22,1,.36,1)',pseudoElement) {if(node)animations.push(node.animate(frames,{duration,easing,fill:'both',...(pseudoElement?{pseudoElement}:{})}));}
   function geometry(){const from=sourceRect(),to=cover()?.getBoundingClientRect(),box=media()?.getBoundingClientRect();if(!from||from.bottom<=0||from.top>=innerHeight)return null;return cardTransform(from,to,box);}
@@ -22,7 +22,7 @@ export function createDetailMotion(dialog, sourceRect) {
     const m=media(),target=cover(),g=target&&m?cardTransform(from,target.getBoundingClientRect(),m.getBoundingClientRect()):null;
     const duration=reduced.matches?120:320;
     if(m){if(g&&!reduced.matches){m.style.transformOrigin=g.origin;animate(m,[{transform:g.transform},{transform:'none'}],duration);}else animate(m,[{opacity:0},{opacity:1}],duration,'ease');}
-    for(const panel of panels())animate(panel,[{opacity:0,transform:reduced.matches?'none':'translateX(-28px)'},{opacity:1,transform:'none'}],reduced.matches?120:280);
+    for(const panel of panels())animate(panel,[{opacity:0,transform:'none'},{opacity:1,transform:'none'}],reduced.matches?120:280);
     animate(dialog,[{opacity:0},{opacity:1}],reduced.matches?120:240,'ease','::backdrop');
     animate(dialog.querySelector('.album-controls'),[{opacity:0},{opacity:1}],duration,'ease');
     dialog.classList.add('detail-moving');completed(generation);

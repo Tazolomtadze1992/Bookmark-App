@@ -670,3 +670,12 @@ Removed the mute/unmute button from expanded videos, including reused grid playe
 Per the owner's correction, Escape now uses the same closing transition as pointer dismissal, rather than the previous immediate-close shortcut. Reduced-motion preferences still use the short stationary fade. An open actions menu still consumes the first Escape; repeated Escape during closing reuses the existing transition.
 
 Validation: syntax, build and diff checks pass. The existing isolated browser fixture passed all 15 checks, including Escape starting the closing animation, repeated Escape completing cleanly, and focus returning to the original card.
+
+
+## 39. Minimal full-viewport bookmark viewer — September 30, 2026
+
+Removed the detail sidebar, visible title, author, dates, More menu and previous/next reference controls at the owner's request. Expanded media is now centered across the full viewport, fitted without cropping, with only a 44px Close control at the upper left and a centered View on X link at the bottom below the media. The media occupies the available viewport between these controls, rather than a right-hand column. The dialog keeps a descriptive accessible name without adding visible metadata. Text-only references retain their content as the main preview.
+
+The same card expansion/return animation now measures the centered layout; close and source controls fade in place. Muted video continuity, animated Escape closing and reduced-motion behavior remain. Multi-image bookmarks retain all attachments as a horizontally scrollable gallery with adjacent media visible; left/right keys browse the album while the viewer is open. Visible album arrows/count were removed, with slide position still announced to assistive technology. No new X data requests or collection changes are involved.
+
+Validation: 27 existing JavaScript tests, syntax, diff and production build checks passed. An isolated local fixture passed 19 browser checks in normal mode and the same 19 with an injected reduced-motion preference, covering the only-two-actions layout, full-width stage, source below media, video continuity, album keyboard navigation, interruption, Escape, focus return and cleanup. A portrait screenshot confirmed centered uncropped media, close at the upper left, no sidebar and the source link below. These are generated fixture results, not X imports; physical mobile testing was not performed. Automatic X checks remain paused.
