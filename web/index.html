@@ -2,9 +2,9 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="local-token" content="__LOCAL_TOKEN__"><link rel="icon" href="/icons/bookmark-simple.svg" type="image/svg+xml"><title>Reference Library</title><link rel="preload" href="/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin><script src="/theme.js"></script><link rel="stylesheet" href="/style.css"><script type="module" src="/app.js"></script></head>
 <body>
 <header class="topbar">
-<nav aria-label="Library sections"><button class="tab active" id="tab-x" aria-pressed="true">X bookmarks</button><button class="tab" id="tab-web" aria-pressed="false">Websites</button></nav>
+<nav aria-label="Library sections"><label class="collection-picker"><select id="collection-select" aria-label="Library collection"><option value="x_post">X bookmarks</option><option value="website">Websites</option></select><img src="/icons/chevron-down.svg" alt=""></label></nav>
 <div id="folder-bar" class="folder-bar" hidden><p class="sr-only" id="folder-help">Select one or more folders. Shows bookmarks in any selected folder. All clears the selection.</p><div id="folder-filters" role="group" aria-label="Filter X bookmarks by folder" aria-describedby="folder-help"></div></div>
-<div class="theme-switch" role="group" aria-label="Color theme"><button type="button" data-theme-choice="light" data-theme-effective="true" aria-pressed="true">Light</button><button type="button" data-theme-choice="dark" data-theme-effective="true" aria-pressed="false">Dark</button></div>
+<button class="theme-icon" type="button" data-theme-choice="dark" data-theme-toggle aria-label="Switch to dark mode" title="Switch to dark mode"><img class="theme-sun" src="/icons/sun.svg" alt=""><img class="theme-moon" src="/icons/moon.svg" alt=""></button>
 </header>
 <section id="library-management" class="library-management" hidden aria-label="Library connections and settings"><a href="#" class="menu-item">Back to library</a><div class="account-panel"><p id="privacy-status">Private · Saved on this Mac</p><p id="sync-status">Loading your library…</p><div id="connection-tools"></div><a class="lab-link menu-item" href="/lab">Capture Lab</a></div></section>
 <main>

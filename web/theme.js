@@ -10,7 +10,14 @@
     document.documentElement.dataset.theme = preference === 'system'
       ? (system.matches ? 'dark' : 'light') : preference;
     for (const button of document.querySelectorAll('[data-theme-choice]')) {
-      button.setAttribute('aria-pressed', String(button.dataset.themeChoice === (button.dataset.themeEffective ? document.documentElement.dataset.theme : preference)));
+      if ('themeToggle' in button.dataset) {
+        const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+        button.dataset.themeChoice = next;
+        button.setAttribute('aria-label', `Switch to ${next} mode`);
+        button.title = `Switch to ${next} mode`;
+      } else {
+        button.setAttribute('aria-pressed', String(button.dataset.themeChoice === (button.dataset.themeEffective ? document.documentElement.dataset.theme : preference)));
+      }
     }
   }
   apply();

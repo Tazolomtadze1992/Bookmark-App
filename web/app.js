@@ -203,36 +203,8 @@ dialog.addEventListener('click',e=>{
 
 dialog.addEventListener('close',()=>{detailPointer=null;detailMotion.settle();for(const c of detailCleanups.splice(0))c();$('#detail-stage').replaceChildren();detailSource?.classList.remove('detail-source');detailSource=null;document.body.classList.remove('detail-open');activeId=null;closingDetail=null;for(const p of players)p.sync();returnFocus?.focus({preventScroll:true});if(pendingRefresh){pendingRefresh=false;const id=returnFocus?.closest('[data-id]')?.dataset.id;refresh().then(()=>{document.querySelector(`[data-id="${id}"] .open-card`)?.focus({preventScroll:true});}).catch(error);}});
 // One shared pill follows pointer hover and returns to the selected section.
-const sectionNav=document.querySelector('.topbar nav');
-const sectionButtons=[...sectionNav.querySelectorAll('.tab')];
-const sectionPill=el('span',null,'nav-highlight');
-sectionPill.setAttribute('aria-hidden','true');
-sectionNav.prepend(sectionPill);
-const navReduced=matchMedia('(prefers-reduced-motion: reduce)');
-const navHover=matchMedia('(hover: hover) and (pointer: fine)');
-let hoveredSection=null;
-function positionSectionPill(button,animate=false){
- const navRect=sectionNav.getBoundingClientRect(),rect=button.getBoundingClientRect();
- if(!navRect.width||!rect.width)return;
- sectionPill.style.transition=animate&&!navReduced.matches?'clip-path 180ms cubic-bezier(0.25, 1, 0.5, 1)':'none';
- sectionPill.style.clipPath=`inset(${rect.top-navRect.top}px ${Math.max(0,navRect.right-rect.right)}px ${Math.max(0,navRect.bottom-rect.bottom)}px ${rect.left-navRect.left}px round 999px)`;
- sectionNav.classList.add('has-highlight');
-}
-const selectedSection=()=>sectionNav.querySelector('.tab.active');
-for(const button of sectionButtons){
- button.addEventListener('pointerenter',e=>{if(e.pointerType==='touch'||!navHover.matches)return;hoveredSection=button;positionSectionPill(button,true);});
- button.addEventListener('focus',()=>{if(button.matches(':focus-visible')){hoveredSection=null;positionSectionPill(button);}});
-}
-sectionNav.addEventListener('pointerleave',()=>{hoveredSection=null;positionSectionPill(selectedSection(),true);});
-sectionNav.addEventListener('keydown',e=>{if(sectionButtons.includes(e.target)){hoveredSection=null;positionSectionPill(e.target);}});
-sectionNav.addEventListener('focusout',e=>{if(!sectionNav.contains(e.relatedTarget))positionSectionPill(hoveredSection||selectedSection());});
-const navResize=new ResizeObserver(()=>positionSectionPill(hoveredSection||selectedSection()));
-navResize.observe(sectionNav);for(const button of sectionButtons)navResize.observe(button);
-navReduced.addEventListener('change',()=>positionSectionPill(hoveredSection||selectedSection()));
-navHover.addEventListener('change',()=>{hoveredSection=null;positionSectionPill(selectedSection());});
-positionSectionPill(selectedSection());
-function switchSection(kind,animate=false){section=kind;query='';$('#tab-x').classList.toggle('active',kind==='x_post');$('#tab-web').classList.toggle('active',kind==='website');$('#tab-x').setAttribute('aria-pressed',String(kind==='x_post'));$('#tab-web').setAttribute('aria-pressed',String(kind==='website'));positionSectionPill(selectedSection(),animate);renderGrid();}
-$('#tab-x').addEventListener('click',e=>switchSection('x_post',e.detail>0));$('#tab-web').addEventListener('click',e=>switchSection('website',e.detail>0));
+const collectionSelect=$('#collection-select');
+collectionSelect.addEventListener('change',()=>{section=collectionSelect.value;query='';renderGrid();});
 if(!window.libraryAPI?.cloud){const link=el('a','Cloud saves');link.id='cloud-status';link.href='/cloud';document.querySelector('.account-panel').append(link);}
 if(!window.libraryAPI?.cloud){const management=$('#library-management');const showManagement=()=>{management.hidden=location.hash!=='#manage';};addEventListener('hashchange',showManagement);showManagement();}
 window.addEventListener('library-refresh',()=>refresh().catch(error));

@@ -249,15 +249,30 @@ html{scrollbar-gutter:stable}
 .topbar .folder-bar{flex:1;min-width:0;margin:0;order:1;display:flex;align-items:center;flex-direction:row}
 .topbar .folder-bar[hidden]{display:none}
 .topbar #folder-filters{gap:4px;align-items:center}
-.theme-switch{display:flex;align-items:center;gap:4px;flex:none;margin-left:auto;order:2}
-.theme-switch button{position:relative;isolation:isolate;display:inline-flex;align-items:center;justify-content:center;height:40px;padding:0 12px;border-radius:999px;color:var(--muted);font-size:13px;font-weight:500;line-height:1;white-space:nowrap}
-.theme-switch button::before{content:'';position:absolute;inset:4px 0;z-index:-1;border-radius:inherit;background:transparent}
-.theme-switch button[aria-pressed="true"]{color:var(--ink)}
-.theme-switch button[aria-pressed="true"]::before{background:var(--nav-highlight)}
-.theme-switch button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
-@media(hover:hover) and (pointer:fine){.theme-switch button:hover{color:var(--ink)}.theme-switch button:hover::before{background:var(--nav-highlight)}}
 .library-management{max-width:600px;margin:16px auto;padding:20px;background:var(--surface);border-radius:16px;box-shadow:var(--shadow-border)}
 .library-management .account-panel{position:static;width:100%;max-width:none;max-height:none}
 @media(max-width:1000px){.topbar{padding:12px 24px;gap:16px;flex-wrap:wrap}.topbar .folder-bar{order:3;flex-basis:100%}}
-@media(max-width:760px){.topbar{min-height:0;padding:12px 20px;gap:8px 12px}.topbar nav{order:0;width:auto;margin:0}.theme-switch{order:1}.topbar .folder-bar{order:2;gap:4px}}
-@media(pointer:coarse){.theme-switch button{height:44px}.theme-switch button::before{inset:0}}
+@media(max-width:760px){.topbar{min-height:0;padding:12px 20px;gap:8px 12px}.topbar nav{order:0;width:auto;margin:0}.theme-icon{order:1}.topbar .folder-bar{order:2;gap:4px}}
+
+
+/* Category states use a neutral OKLCH scale, with inverted selected colors. */
+:root{--category-bg:oklch(0.945 0 0);--category-hover:oklch(0.915 0 0);--category-active:oklch(0.18 0 0);--category-active-hover:oklch(0.24 0 0);--category-ink:oklch(0.28 0 0);--category-active-ink:oklch(0.985 0 0)}
+:root[data-theme="dark"]{--category-bg:oklch(0.29 0 0);--category-hover:oklch(0.34 0 0);--category-active:oklch(0.94 0 0);--category-active-hover:oklch(0.88 0 0);--category-ink:oklch(0.94 0 0);--category-active-ink:oklch(0.18 0 0)}
+.topbar #folder-filters{gap:8px}
+.folder-pill{color:var(--category-ink)}
+.folder-pill::before{background:var(--category-bg)}
+.folder-pill[aria-pressed="true"]{color:var(--category-active-ink)}
+.folder-pill[aria-pressed="true"]::before{background:var(--category-active)}
+@media(hover:hover) and (pointer:fine){.folder-pill:hover{color:var(--category-ink)}.folder-pill:hover::before{background:var(--category-hover)}.folder-pill[aria-pressed="true"]:hover{color:var(--category-active-ink)}.folder-pill[aria-pressed="true"]:hover::before{background:var(--category-active-hover)}}
+.collection-picker{position:relative;display:flex;align-items:center}
+.collection-picker select{appearance:none;-webkit-appearance:none;width:132px;height:40px;padding:0 28px 0 8px;border:0;border-radius:8px;background:transparent;color:var(--ink);font:inherit;font-size:13px;font-weight:500;line-height:1;cursor:pointer}
+.collection-picker option{color:var(--ink);background:var(--surface)}
+.collection-picker img{position:absolute;right:8px;width:16px;height:16px;pointer-events:none;filter:var(--icon-filter)}
+.theme-icon{display:flex;position:relative;align-items:center;justify-content:center;width:40px;height:40px;flex:none;order:2;margin-left:auto;padding:0;border-radius:50%;background:transparent;color:var(--ink)}
+.theme-icon img{width:20px;height:20px;filter:var(--icon-filter)}
+.theme-icon .theme-moon{display:none}
+:root[data-theme="dark"] .theme-icon .theme-sun{display:none}
+:root[data-theme="dark"] .theme-icon .theme-moon{display:block}
+@media(hover:hover) and (pointer:fine){.collection-picker select:hover,.theme-icon:hover{background:var(--category-bg)}}
+@media(max-width:1000px){.topbar .theme-icon{order:1}}
+@media(pointer:coarse){.collection-picker select,.theme-icon{height:44px}.theme-icon{width:44px}}
