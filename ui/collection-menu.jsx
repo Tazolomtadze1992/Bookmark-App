@@ -10,9 +10,11 @@ const CollectionIcon=({icon})=><img className="collection-icon" src={`/icons/${i
 
 function CollectionMenu({initialValue,onValueChange}){
  const [value,setValue]=useState(initialValue);
- const change=next=>{setValue(next);onValueChange(next);};
- return <div className="collection-switcher" role="group" aria-label="Library collection">
-  {collections.map(([id,label,icon])=><HeaderButton key={id} className="collection-choice" aria-label={label} title={label} aria-pressed={value===id} onClick={()=>{if(value!==id)change(id);}}>
+ const [animated,setAnimated]=useState(false);
+ const change=(next,event)=>{const animate=event.detail>0;setAnimated(animate);setValue(next);onValueChange(next,{animate});};
+ return <div className="collection-switcher" role="group" aria-label="Library collection" data-motion={animated?'animated':'instant'}>
+  <span className="collection-selection" aria-hidden="true" style={{transform:`translateX(${collections.findIndex(([id])=>id===value)*36}px)`}}/>
+  {collections.map(([id,label,icon])=><HeaderButton key={id} className="collection-choice" aria-label={label} title={label} aria-pressed={value===id} onClick={event=>{if(value!==id)change(id,event);}}>
    <CollectionIcon icon={icon}/>
   </HeaderButton>)}
  </div>;
