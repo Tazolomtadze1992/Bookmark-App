@@ -9,7 +9,7 @@ if(!key.startsWith('sb_publishable_')) throw new Error('Use a publishable key, n
 await rm('dist',{recursive:true,force:true});
 await mkdir('dist',{recursive:true});
 await buildNavigation();
-for(const name of ['app.js','style.css','theme.js','brand-wave.js','folders.js','detail-motion.js','navigation-motion.js','grid-cache.js','sync-status.js','collection-menu.js']) await copyFile(`web/${name}`,`dist/${name}`);
+for(const name of ['app.js','style.css','theme.js','brand-wave.js','folders.js','detail-motion.js','navigation-motion.js','filter-layout.js','grid-cache.js','sync-status.js','collection-menu.js']) await copyFile(`web/${name}`,`dist/${name}`);
 await cp('web/icons','dist/icons',{recursive:true});
 await cp('web/fonts','dist/fonts',{recursive:true});
 let html=await readFile('web/index.html','utf8');
