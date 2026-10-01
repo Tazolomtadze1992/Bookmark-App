@@ -16,13 +16,3 @@ test('render errors remain visible to callers without leaving the grid locked',a
  const motion=createNavigationMotion(grid,()=>{throw Error('Render failure');});
  await assert.rejects(motion.update(),/Render failure/);assert.equal(grid.inert,false);
 });
-
-test('layout preview captures before render, renders immediately, then animates; keyboard and reduced motion stay instant',async()=>{
- const calls=[],grid={inert:false,removeAttribute(){}},layout={capture(){calls.push('capture');return 'poses';},stop(){calls.push('stop');},play(p){calls.push(`play:${p}`);}};
- let reduced=false;
- const motion=createNavigationMotion(grid,()=>calls.push('render'),{layoutEnabled:()=>true,reducedMotion:()=>reduced,layout});
- await motion.update();assert.deepEqual(calls,['capture','stop','render','play:poses']);
- calls.length=0;await motion.update({animate:false});assert.deepEqual(calls,['stop','render']);
- calls.length=0;reduced=true;await motion.update();assert.deepEqual(calls,['stop','render']);
- calls.length=0;reduced=false;await motion.update({direction:1});assert.deepEqual(calls,['stop','render']);
-});

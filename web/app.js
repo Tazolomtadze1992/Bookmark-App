@@ -12,10 +12,7 @@ const gridCleanups=[],detailCleanups=[],players=new Set(), imageCache=new Map();
 const dialog=$('#detail');
 let detailSource=null;
 const detailMotion=createDetailMotion(dialog,()=>detailSource?.getBoundingClientRect());
-const navigationMotion=createNavigationMotion($('#captures'),renderGrid,{layoutEnabled:()=>new URLSearchParams(location.search).get('filterMotion')==='layout'});
-addEventListener('resize',()=>navigationMotion.settle());
-addEventListener('scroll',()=>navigationMotion.settle(),{passive:true});
-matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change',()=>navigationMotion.settle());
+const navigationMotion=createNavigationMotion($('#captures'),renderGrid);
 function markDetailSource(id){detailSource?.classList.remove('detail-source');detailSource=document.querySelector(`[data-id="${id}"] .card-surface`);detailSource?.classList.add('detail-source');}
 async function api(path,method='GET',data){const r=window.libraryAPI?await window.libraryAPI.request(path,method,data):await fetch(path,{method,headers:{'X-Capture-Token':token,...(data?{'Content-Type':'application/json'}:{})},body:data?JSON.stringify(data):undefined});if(!r.ok){let e;try{e=await r.json();}catch{}throw Error(e?.error||'Could not reach your library.');}return r;}
 function el(tag,text,cls){const n=document.createElement(tag);if(text)n.textContent=text;if(cls)n.className=cls;return n;}
@@ -39,7 +36,7 @@ async function imageURL(item){const key=`${item.id}:${item.updated_at}`;if(!imag
 function motionPreview(item,media,scope,mediaPoster){
 if(scope==='detail'){const existing=[...players].find(p=>p.itemId===item.id&&p.url===media.url&&p.scope==='grid');if(existing){const borrowed=existing.borrow();detailCleanups.push(borrowed.restore);return borrowed.wrap;}}
 const wrap=el('div',null,'motion-wrap'),video=el('video',null,'motion-video');video.muted=true;video.defaultMuted=true;video.loop=true;video.playsInline=true;video.preload='none';video.width=media.width;video.height=media.height;video.setAttribute('aria-label',`Video by ${author(item).name}`);const controls=el('div',null,'motion-controls'),note=el('p',null,'motion-note');note.setAttribute('role','status');let visible=false,disposed=false,blocked=false;const reduced=matchMedia('(prefers-reduced-motion: reduce)');
-async function sync(){if(disposed)return;if(!visible||wrap.closest('[hidden],[data-filter-exit]')||document.hidden||(dialog.open&&scope==='grid')||reduced.matches){video.pause();return;}if(blocked)return;if(!video.src)video.src=media.url;try{await video.play();if(!disposed)note.textContent='';}catch(e){if(disposed||e.name==='AbortError')return;blocked=true;note.classList.remove('reduced-note');note.textContent=e.name==='NotAllowedError'?'Autoplay unavailable. Open the original post to watch.':'Preview unavailable. You can still open the original post.';controls.classList.add('needs-action');}}
+async function sync(){if(disposed)return;if(!visible||wrap.closest('[hidden]')||document.hidden||(dialog.open&&scope==='grid')||reduced.matches){video.pause();return;}if(blocked)return;if(!video.src)video.src=media.url;try{await video.play();if(!disposed)note.textContent='';}catch(e){if(disposed||e.name==='AbortError')return;blocked=true;note.classList.remove('reduced-note');note.textContent=e.name==='NotAllowedError'?'Autoplay unavailable. Open the original post to watch.':'Preview unavailable. You can still open the original post.';controls.classList.add('needs-action');}}
 wrap.style.setProperty('--media-ratio',media.width>0&&media.height>0?media.width/media.height:1);wrap.append(video,controls,note);video.addEventListener('error',()=>{blocked=true;note.classList.remove('reduced-note');note.textContent='Preview unavailable. You can still open the original post.';controls.classList.add('needs-action');});
 const poster=mediaPoster===undefined?state.x_images?.[item.post_id]:mediaPoster;if(poster)video.poster=poster;else if(item.has_preview)imageURL(item).then(u=>{if(!disposed)video.poster=u;}).catch(()=>{});
 const io=new IntersectionObserver(entries=>{visible=entries[0].isIntersecting&&entries[0].intersectionRatio>=(scope==='detail'?.6:.1);sync();},{threshold:[.1,.6]});io.observe(wrap);const preference=()=>{note.classList.toggle('reduced-note',reduced.matches);note.textContent=reduced.matches?'Reduced motion: preview paused. Open the original post to watch.':'';controls.classList.toggle('needs-action',reduced.matches);sync();};if(reduced.matches){note.classList.add('reduced-note');note.textContent='Reduced motion: preview paused. Open the original post to watch.';controls.classList.add('needs-action');}reduced.addEventListener('change',preference);document.addEventListener('visibilitychange',sync);const player={sync,video,itemId:item.id,url:media.url,get scope(){return scope;},borrow(){
@@ -143,7 +140,7 @@ function albumPreview(item){
 }
 function measureMasonry(surfaces){
  // Read all sizes before writing spans; finish packing in this task, before paint.
- const sizes=surfaces.filter(surface=>!surface.closest('[hidden],[data-filter-exit]')&&surface.parentElement?.parentElement?.classList.contains('masonry')).map(surface=>[surface.parentElement,Math.ceil(surface.getBoundingClientRect().height+12)]);
+ const sizes=surfaces.filter(surface=>!surface.closest('[hidden]')&&surface.parentElement?.parentElement?.classList.contains('masonry')).map(surface=>[surface.parentElement,Math.ceil(surface.getBoundingClientRect().height+12)]);
  for(const [card,span] of sizes)if(span>12)card.style.gridRowEnd=`span ${span}`;
 }
 const resizeObserver=new ResizeObserver(entries=>measureMasonry(entries.map(({target})=>target)));
@@ -175,7 +172,7 @@ function renderFolders(){
 }
 function filteredItems(){return state.captures.filter(i=>!i.fixture&&i.kind===section&&(section!=='x_post'||inFolder(i,selectedFolders,state.bookmarks?.folder_snapshot))&&(!query||[i.title,i.description,author(i).name,author(i).handle,i.url].join(' ').toLowerCase().includes(query)));}
 function renderGrid(){
- if(!state)return;navigationMotion.settle();renderFolders();const grid=$('#captures'),items=filteredItems();
+ if(!state)return;renderFolders();const grid=$('#captures'),items=filteredItems();
  emptyGrid?.remove();emptyGrid=null;grid.className=section==='x_post'?'masonry':'web-grid';
  gridCache.reconcile(state.captures.filter(item=>!item.fixture),items);
  measureMasonry([...grid.querySelectorAll('.card:not([hidden]) .card-surface')]);
@@ -201,7 +198,6 @@ function openDetail(id,trigger,animate=true){
  if(dialog.open)return;
  activeId=id;returnFocus=trigger;
  const source=trigger.closest('.card-surface'),from=source?.getBoundingClientRect();
- navigationMotion.settle();
  document.body.classList.add('detail-open');dialog.showModal();renderDetail();markDetailSource(id);
  for(const p of players)p.sync();detailMotion.open(from,animate);$('#close-detail').focus({preventScroll:true});
 }
