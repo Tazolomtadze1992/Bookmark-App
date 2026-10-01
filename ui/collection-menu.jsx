@@ -1,8 +1,7 @@
 import React, {forwardRef, useState} from 'react';
 import {createRoot} from 'react-dom/client';
-import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 
-// The same Radix composition used by shadcn, styled with the library's pill tokens.
+// Collection controls reuse the library's shared button and pill tokens.
 const HeaderButton=forwardRef(function HeaderButton({className='',...props},ref){
  return <button ref={ref} type="button" className={`header-button ${className}`} {...props}/>;
 });
@@ -11,29 +10,12 @@ const CollectionIcon=({icon})=><img className="collection-icon" src={`/icons/${i
 
 function CollectionMenu({initialValue,onValueChange}){
  const [value,setValue]=useState(initialValue);
- const [,label,icon]=collections.find(([id])=>id===value);
  const change=next=>{setValue(next);onValueChange(next);};
- return <DropdownMenu.Root modal={false}>
-  <DropdownMenu.Trigger asChild>
-   <HeaderButton className="collection-trigger" aria-label={`Library collection: ${label}`}>
-    <CollectionIcon icon={icon}/>
-    <span>{label}</span>
-    <img className="collection-chevron" src="/icons/chevron-down.svg" alt=""/>
-   </HeaderButton>
-  </DropdownMenu.Trigger>
-  <DropdownMenu.Portal>
-   <DropdownMenu.Content className="collection-content" align="start" sideOffset={4} collisionPadding={16} aria-label="Library collection">
-    <DropdownMenu.RadioGroup value={value} onValueChange={change}>
-     {collections.map(([id,label,icon])=><DropdownMenu.RadioItem key={id} value={id} className="collection-item">
-      <span className="collection-label"><CollectionIcon icon={icon}/><span>{label}</span></span>
-      <DropdownMenu.ItemIndicator className="collection-indicator">
-       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m5 12 4 4 10-10"/></svg>
-      </DropdownMenu.ItemIndicator>
-     </DropdownMenu.RadioItem>)}
-    </DropdownMenu.RadioGroup>
-   </DropdownMenu.Content>
-  </DropdownMenu.Portal>
- </DropdownMenu.Root>;
+ return <div className="collection-switcher" role="group" aria-label="Library collection">
+  {collections.map(([id,label,icon])=><HeaderButton key={id} className="collection-choice" aria-label={label} title={label} aria-pressed={value===id} onClick={()=>{if(value!==id)change(id);}}>
+   <CollectionIcon icon={icon}/>
+  </HeaderButton>)}
+ </div>;
 }
 
 export function mountCollectionMenu(container,{value,onValueChange}){
