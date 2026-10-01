@@ -6,7 +6,7 @@ import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 const HeaderButton=forwardRef(function HeaderButton({className='',...props},ref){
  return <button ref={ref} type="button" className={`header-button ${className}`} {...props}/>;
 });
-const collections=[['x_post','X bookmarks','twitter'],['website','Websites','computer']];
+const collections=[['x_post','Bookmarks','twitter'],['website','Websites','computer']];
 const CollectionIcon=({icon})=><img className="collection-icon" src={`/icons/${icon}.svg`} alt=""/>;
 
 function CollectionMenu({initialValue,onValueChange}){
