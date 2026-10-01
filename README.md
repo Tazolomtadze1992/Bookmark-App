@@ -41,7 +41,7 @@ https://tquryxcyrvgwchbxyrmk.supabase.co/functions/v1/library-service/oauth/call
 
 ## Legacy local lab and handoff
 
-`python3 server.py` still runs the historical loopback Capture Lab for development. It does not mirror new cloud records back to SQLite. The original local collection remains intact. After this installation's handoff, local X checks and delivery are disabled to avoid double billing and overwriting cloud changes.
+Run `npm ci` and `npm run build:navigation` before starting local development. `python3 server.py` still runs the historical loopback Capture Lab for development. It does not mirror new cloud records back to SQLite. The original local collection remains intact. After this installation's handoff, local X checks and delivery are disabled to avoid double billing and overwriting cloud changes.
 
 `scripts/migrate_cloud_worker.py` performs the explicitly approved one-time transfer of an established exclusion baseline, spending state and read-only X credentials into the owner's existing private cloud account. Stop the local server first. This is not a general onboarding/import tool. Do not rerun it with stale credentials or reset the baseline.
 

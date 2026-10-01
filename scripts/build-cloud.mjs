@@ -1,5 +1,6 @@
 import {mkdir, readFile, writeFile, copyFile, cp, rm} from 'node:fs/promises';
 import {build} from 'esbuild';
+import {buildNavigation} from './build-navigation.mjs';
 const url=process.env.PUBLIC_SUPABASE_URL;
 const key=process.env.PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 if(!url || !key) throw new Error('Set PUBLIC_SUPABASE_URL and PUBLIC_SUPABASE_PUBLISHABLE_KEY in Vercel before deploying.');
@@ -7,7 +8,8 @@ if(!/^https:\/\/[a-z0-9]+\.supabase\.co$/.test(url)) throw new Error('Expected t
 if(!key.startsWith('sb_publishable_')) throw new Error('Use a publishable key, never a secret or service-role key.');
 await rm('dist',{recursive:true,force:true});
 await mkdir('dist',{recursive:true});
-for(const name of ['app.js','style.css','theme.js','brand-wave.js','folders.js','detail-motion.js','sync-status.js']) await copyFile(`web/${name}`,`dist/${name}`);
+await buildNavigation();
+for(const name of ['app.js','style.css','theme.js','brand-wave.js','folders.js','detail-motion.js','sync-status.js','collection-menu.js']) await copyFile(`web/${name}`,`dist/${name}`);
 await cp('web/icons','dist/icons',{recursive:true});
 await cp('web/fonts','dist/fonts',{recursive:true});
 let html=await readFile('web/index.html','utf8');

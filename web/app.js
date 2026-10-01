@@ -1,6 +1,7 @@
 import {syncNotice} from './sync-status.js';
 import {createDetailMotion} from './detail-motion.js';
 import {folderOptions,inFolder,toggleFolder,validFolderSelection} from './folders.js';
+import {mountCollectionMenu} from './collection-menu.js';
 const $ = s => document.querySelector(s);
 const token = $('meta[name="local-token"]').content;
 let state=null, section='x_post', query='', activeId=null,  returnFocus=null, pendingRefresh=false;
@@ -147,7 +148,7 @@ function renderFolders(){
   folderOptionSignature=signature;filters.replaceChildren();
   const options=[{id:'all',name:'All'},...folders,...(snapshot?.synced_at?[{id:'unfiled',name:'Unfiled'}]:[])];
   for(const {id,name} of options){
-   const pill=btn(name,()=>{selectedFolders=toggleFolder(selectedFolders,id);renderGrid();},'folder-pill');
+   const pill=btn(name,()=>{selectedFolders=toggleFolder(selectedFolders,id);renderGrid();},'header-button folder-pill');
    pill.dataset.folder=id;pill.title=name;filters.append(pill);
   }
   if(focused){const next=[...filters.children].find(pill=>pill.dataset.folder===focused)||filters.firstElementChild;next?.focus();}
@@ -202,9 +203,7 @@ dialog.addEventListener('click',e=>{
 },true);
 
 dialog.addEventListener('close',()=>{detailPointer=null;detailMotion.settle();for(const c of detailCleanups.splice(0))c();$('#detail-stage').replaceChildren();detailSource?.classList.remove('detail-source');detailSource=null;document.body.classList.remove('detail-open');activeId=null;closingDetail=null;for(const p of players)p.sync();returnFocus?.focus({preventScroll:true});if(pendingRefresh){pendingRefresh=false;const id=returnFocus?.closest('[data-id]')?.dataset.id;refresh().then(()=>{document.querySelector(`[data-id="${id}"] .open-card`)?.focus({preventScroll:true});}).catch(error);}});
-// One shared pill follows pointer hover and returns to the selected section.
-const collectionSelect=$('#collection-select');
-collectionSelect.addEventListener('change',()=>{section=collectionSelect.value;query='';renderGrid();});
+mountCollectionMenu($('#collection-menu'),{value:section,onValueChange:value=>{section=value;query='';if(state)renderGrid();}});
 if(!window.libraryAPI?.cloud){const link=el('a','Cloud saves');link.id='cloud-status';link.href='/cloud';document.querySelector('.account-panel').append(link);}
 if(!window.libraryAPI?.cloud){const management=$('#library-management');const showManagement=()=>{management.hidden=location.hash!=='#manage';};addEventListener('hashchange',showManagement);showManagement();}
 window.addEventListener('library-refresh',()=>refresh().catch(error));

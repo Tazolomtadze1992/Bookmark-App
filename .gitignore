@@ -17,5 +17,6 @@ node_modules/
 .venv/
 venv/
 dist/
+web/collection-menu.js
 .vercel/
 supabase/.temp/
