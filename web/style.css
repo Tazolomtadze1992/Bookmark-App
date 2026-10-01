@@ -242,3 +242,22 @@ html{scrollbar-gutter:stable}
 #detail .album-return .motion-wrap{height:100%;max-height:100%;display:flex;align-items:center;background:transparent;box-shadow:none}
 #detail .album-return .media-image,#detail .album-return .motion-wrap{border-radius:10px;overflow:hidden;box-shadow:none}
 #detail .album-return .text-preview{max-width:640px;border-radius:12px;padding:48px;box-shadow:none}
+
+/* Category-first navigation: one quiet sticky header, no divider or utility menu. */
+.topbar{height:auto;min-height:72px;padding:12px 32px;gap:24px;flex-wrap:nowrap;border:0;box-shadow:none;align-items:center;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.topbar nav{flex:none;width:auto;margin:0;order:0}
+.topbar .folder-bar{flex:1;min-width:0;margin:0;order:1;display:flex;align-items:center;flex-direction:row}
+.topbar .folder-bar[hidden]{display:none}
+.topbar #folder-filters{gap:4px;align-items:center}
+.theme-switch{display:flex;align-items:center;gap:4px;flex:none;margin-left:auto;order:2}
+.theme-switch button{position:relative;isolation:isolate;display:inline-flex;align-items:center;justify-content:center;height:40px;padding:0 12px;border-radius:999px;color:var(--muted);font-size:13px;font-weight:500;line-height:1;white-space:nowrap}
+.theme-switch button::before{content:'';position:absolute;inset:4px 0;z-index:-1;border-radius:inherit;background:transparent}
+.theme-switch button[aria-pressed="true"]{color:var(--ink)}
+.theme-switch button[aria-pressed="true"]::before{background:var(--nav-highlight)}
+.theme-switch button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+@media(hover:hover) and (pointer:fine){.theme-switch button:hover{color:var(--ink)}.theme-switch button:hover::before{background:var(--nav-highlight)}}
+.library-management{max-width:600px;margin:16px auto;padding:20px;background:var(--surface);border-radius:16px;box-shadow:var(--shadow-border)}
+.library-management .account-panel{position:static;width:100%;max-width:none;max-height:none}
+@media(max-width:1000px){.topbar{padding:12px 24px;gap:16px;flex-wrap:wrap}.topbar .folder-bar{order:3;flex-basis:100%}}
+@media(max-width:760px){.topbar{min-height:0;padding:12px 20px;gap:8px 12px}.topbar nav{order:0;width:auto;margin:0}.theme-switch{order:1}.topbar .folder-bar{order:2;gap:4px}}
+@media(pointer:coarse){.theme-switch button{height:44px}.theme-switch button::before{inset:0}}

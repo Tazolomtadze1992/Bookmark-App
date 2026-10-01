@@ -10,7 +10,7 @@
     document.documentElement.dataset.theme = preference === 'system'
       ? (system.matches ? 'dark' : 'light') : preference;
     for (const button of document.querySelectorAll('[data-theme-choice]')) {
-      button.setAttribute('aria-pressed', String(button.dataset.themeChoice === preference));
+      button.setAttribute('aria-pressed', String(button.dataset.themeChoice === (button.dataset.themeEffective ? document.documentElement.dataset.theme : preference)));
     }
   }
   apply();

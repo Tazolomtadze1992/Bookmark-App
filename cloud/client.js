@@ -13,14 +13,14 @@ const email=document.createElement('input');email.type='email';email.required=tr
 const submit=document.createElement('button');submit.type='submit';submit.textContent='Email me a sign-in link';
 login.append(title,description,email,submit,notice);
 login.addEventListener('submit',async e=>{e.preventDefault();submit.disabled=true;notice.textContent='Sending your sign-in link…';const {error}=await db.auth.signInWithOtp({email:email.value.trim(),options:{emailRedirectTo:location.origin+'/'}});notice.textContent=error?error.message:'Check your email and open the sign-in link on this device.';submit.disabled=false;});
-function signedOut(){main.hidden=true;document.querySelector('nav').hidden=true;labLink.hidden=true;document.querySelector('.account-menu').hidden=true;document.querySelector('.search').hidden=true;document.body.append(login);}
+function signedOut(){main.hidden=true;document.querySelector('nav').hidden=true;labLink.hidden=true;document.querySelector('#library-management').hidden=true;document.querySelector('#folder-bar').hidden=true;document.body.append(login);}
 const initial=await db.auth.getSession();
 if(initial.error)notice.textContent=initial.error.message;
 if(!initial.data.session){signedOut();await new Promise(resolve=>{const {data:{subscription}}=db.auth.onAuthStateChange((event,session)=>{if(session){subscription.unsubscribe();resolve();}});});}
 const verified=await db.auth.getUser();
 if(verified.error||!verified.data.user){await db.auth.signOut({scope:'local'});location.replace('/');throw Error('Sign in again to continue.');}
 user=verified.data.user;
-login.remove();main.hidden=false;document.querySelector('nav').hidden=false;labLink.hidden=false;document.querySelector('.account-menu').hidden=false;document.querySelector('.search').hidden=false;
+login.remove();main.hidden=false;document.querySelector('nav').hidden=false;labLink.hidden=false;
 labLink.textContent='Sign out';labLink.setAttribute('aria-label','Sign out');labLink.href='#';labLink.addEventListener('click',async e=>{e.preventDefault();const {error}=await db.auth.signOut({scope:'local'});if(error){document.querySelector('#status').textContent=error.message;return;}location.replace('/');});
 personalLabel.textContent='Private · Saved in your account';
 const reply=data=>new Response(JSON.stringify(data),{headers:{'Content-Type':'application/json'}});
@@ -84,8 +84,8 @@ action('Open Trash',async()=>{
 panel.append(report,trash);tools.append(summary,panel);
 tools.addEventListener('toggle',()=>{if(tools.open)connectionStatus().catch(e=>{report.textContent=e.message;});});
 document.querySelector('#connection-tools').append(tools);
-// Existing maintenance links still open the utility menu directly.
-function managementView(){if(location.hash==='#manage'){document.querySelector('.account-menu').open=true;tools.open=true;}}
+// Connection recovery remains available at #manage without an account menu.
+function managementView(){const visible=location.hash==='#manage';document.querySelector('#library-management').hidden=!visible;tools.open=visible;}
 window.addEventListener('hashchange',managementView);managementView();
 db.auth.onAuthStateChange(event=>{if(event==='SIGNED_OUT')location.replace('/');});
 await import('/app.js');

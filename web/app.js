@@ -156,7 +156,7 @@ function renderFolders(){
  const note=$('#folder-status');
  const allowancePaused=[state.bookmarks?.message,state.bookmarks?.folder_error].includes('Spending allowance reached');
  note.textContent=window.libraryAPI?.cloud?syncNotice(state.bookmarks,state.cloud_error):state.cloud_error?'Folder status unavailable':allowancePaused?'X sync paused — spending limit reached':state.bookmarks?.folder_error?'Folder sync needs attention':!snapshot?.synced_at?'Folders haven’t synced yet':folders.length?'':'Create folders on X to organize your bookmarks.';
- note.title=window.libraryAPI?.cloud?(state.bookmarks?.message||state.cloud_error||'Automatic X checks')+' · Manage in Library menu → Connections & Trash.':allowancePaused?'New bookmarks and folder updates are paused by the app’s safety allowance. This estimate is not your actual X bill. See Library menu → Connections & Trash.':state.bookmarks?.folder_error||'Folder names and assignments come from X. Existing old-bookmark exclusions still apply.';
+ note.title=window.libraryAPI?.cloud?(state.bookmarks?.message||state.cloud_error||'Automatic X checks')+' · Manage connections at #manage.':allowancePaused?'New bookmarks and folder updates are paused by the app’s safety allowance. This estimate is not your actual X bill. See connections at #manage.':state.bookmarks?.folder_error||'Folder names and assignments come from X. Existing old-bookmark exclusions still apply.';
 }
 function filteredItems(){return state.captures.filter(i=>!i.fixture&&i.kind===section&&(section!=='x_post'||inFolder(i,selectedFolders,state.bookmarks?.folder_snapshot))&&(!query||[i.title,i.description,author(i).name,author(i).handle,i.url].join(' ').toLowerCase().includes(query)));}
 function renderGrid(){if(!state)return;renderFolders();for(const c of gridCleanups.splice(0))c();resizeObserver.disconnect();const grid=$('#captures');grid.replaceChildren();grid.className=section==='x_post'?'masonry':'web-grid';const items=filteredItems();
@@ -231,9 +231,10 @@ navResize.observe(sectionNav);for(const button of sectionButtons)navResize.obser
 navReduced.addEventListener('change',()=>positionSectionPill(hoveredSection||selectedSection()));
 navHover.addEventListener('change',()=>{hoveredSection=null;positionSectionPill(selectedSection());});
 positionSectionPill(selectedSection());
-function switchSection(kind,animate=false){section=kind;query='';$('#search').value='';$('#tab-x').classList.toggle('active',kind==='x_post');$('#tab-web').classList.toggle('active',kind==='website');$('#tab-x').setAttribute('aria-pressed',String(kind==='x_post'));$('#tab-web').setAttribute('aria-pressed',String(kind==='website'));positionSectionPill(selectedSection(),animate);renderGrid();}
-$('#tab-x').addEventListener('click',e=>switchSection('x_post',e.detail>0));$('#tab-web').addEventListener('click',e=>switchSection('website',e.detail>0));let searchTimer;$('#search').addEventListener('input',e=>{query=e.target.value.trim().toLowerCase();clearTimeout(searchTimer);searchTimer=setTimeout(renderGrid,160);});
+function switchSection(kind,animate=false){section=kind;query='';$('#tab-x').classList.toggle('active',kind==='x_post');$('#tab-web').classList.toggle('active',kind==='website');$('#tab-x').setAttribute('aria-pressed',String(kind==='x_post'));$('#tab-web').setAttribute('aria-pressed',String(kind==='website'));positionSectionPill(selectedSection(),animate);renderGrid();}
+$('#tab-x').addEventListener('click',e=>switchSection('x_post',e.detail>0));$('#tab-web').addEventListener('click',e=>switchSection('website',e.detail>0));
 if(!window.libraryAPI?.cloud){const link=el('a','Cloud saves');link.id='cloud-status';link.href='/cloud';document.querySelector('.account-panel').append(link);}
+if(!window.libraryAPI?.cloud){const management=$('#library-management');const showManagement=()=>{management.hidden=location.hash!=='#manage';};addEventListener('hashchange',showManagement);showManagement();}
 window.addEventListener('library-refresh',()=>refresh().catch(error));
 refresh().catch(error);
 // Local reads only; browsing and searching never request paid X data.
