@@ -282,9 +282,20 @@ html{scrollbar-gutter:stable}
 .theme-icon{width:40px;flex:none;order:2;margin-left:auto;padding:0;border-radius:50%}
 .theme-icon::before{inset:4px}
 .theme-icon img{width:16px;height:16px;filter:var(--icon-filter)}
-.theme-icon .theme-moon{display:none}
-:root[data-theme="dark"] .theme-icon .theme-sun{display:none}
-:root[data-theme="dark"] .theme-icon .theme-moon{display:block}
+/* A low orbit center makes the outgoing icon set right and its partner rise left. */
+.theme-viewport{position:relative;width:32px;height:32px;overflow:hidden;border-radius:50%;pointer-events:none}
+.theme-orbit{position:absolute;left:2px;top:16px;width:28px;height:28px;transform-origin:center;transition:transform 300ms cubic-bezier(.645,.045,.355,1)}
+.theme-body{position:absolute;left:6px;width:16px;height:16px;transform-origin:center;transition:transform 300ms cubic-bezier(.645,.045,.355,1)}
+.theme-body.theme-sun{top:-8px}
+.theme-body.theme-moon{top:20px}
+.theme-icon[data-theme-motion="instant"] .theme-orbit,.theme-icon[data-theme-motion="instant"] .theme-body{transition:none}
+@media(prefers-reduced-motion:reduce){
+ .theme-orbit{transform:none!important;transition:none}
+ .theme-body{transform:none!important;transition:opacity 100ms ease}
+ .theme-body.theme-moon{top:-8px;opacity:0}
+ :root[data-theme="dark"] .theme-body.theme-sun{opacity:0}
+ :root[data-theme="dark"] .theme-body.theme-moon{opacity:1}
+}
 @media(hover:hover) and (pointer:fine){.header-button:hover::before{background:var(--category-hover)}.folder-pill[aria-pressed="true"]:hover::before{background:var(--category-active-hover)}}
 @media(max-width:1000px){.topbar .theme-icon{order:1}}
 @media(pointer:coarse){.header-button{height:44px;min-width:44px}.header-button::before{inset:6px 0}.theme-icon{width:44px}.theme-icon::before{inset:6px}.collection-choice{min-width:36px}.collection-choice::before{inset:10px 0}}

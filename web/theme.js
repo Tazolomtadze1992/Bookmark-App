@@ -6,11 +6,32 @@
   const normalize = value => choices.includes(value) ? value : 'system';
   let preference = 'system';
   try { preference = normalize(localStorage.getItem(key)); } catch {}
-  function apply() {
+  const iconStates = new WeakMap();
+  function updateIcon(button, theme, animate) {
+    const orbit = button.querySelector('.theme-orbit');
+    if (!orbit) return;
+    let state = iconStates.get(button);
+    if (!state) {
+      state = {theme, angle: theme === 'dark' ? 180 : 0};
+      iconStates.set(button, state);
+      button.dataset.themeMotion = 'instant';
+    } else if (state.theme !== theme) {
+      // Continue clockwise after settling. If reversed in flight, retrace the
+      // existing arc instead of making the icons take another full revolution.
+      const moving = orbit.getAnimations?.().some(animation => animation.playState === 'running');
+      const angle = moving && state.fromTheme === theme ? state.fromAngle : state.angle + 180;
+      Object.assign(state, {fromAngle: state.angle, fromTheme: state.theme, angle, theme});
+      button.dataset.themeMotion = animate ? 'orbit' : 'instant';
+    } else return;
+    orbit.style.transform = `rotate(${state.angle}deg)`;
+    for (const body of button.querySelectorAll('.theme-body')) body.style.transform = `rotate(${-state.angle}deg)`;
+  }
+  function apply({animate = false} = {}) {
     document.documentElement.dataset.theme = preference === 'system'
       ? (system.matches ? 'dark' : 'light') : preference;
     for (const button of document.querySelectorAll('[data-theme-choice]')) {
       if ('themeToggle' in button.dataset) {
+        updateIcon(button, document.documentElement.dataset.theme, animate);
         const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
         button.dataset.themeChoice = next;
         button.setAttribute('aria-label', `Switch to ${next} mode`);
@@ -30,10 +51,10 @@
   });
   document.addEventListener('DOMContentLoaded', () => {
     apply();
-    for (const button of document.querySelectorAll('[data-theme-choice]')) button.addEventListener('click', () => {
+    for (const button of document.querySelectorAll('[data-theme-choice]')) button.addEventListener('click', event => {
       preference = normalize(button.dataset.themeChoice);
       try { localStorage.setItem(key, preference); } catch {}
-      apply();
+      apply({animate: event?.detail > 0});
     });
   });
 })();
