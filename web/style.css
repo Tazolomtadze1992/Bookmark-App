@@ -270,7 +270,7 @@ html{scrollbar-gutter:stable}
 .header-button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 .header-button[data-state="open"]::before{background:var(--category-hover)}
 .collection-icon{width:16px;height:16px;flex:none;filter:var(--icon-filter)}
-.collection-switcher{position:relative;isolation:isolate;display:inline-flex;align-items:center;height:32px;padding:0 4px;border-radius:999px;background:var(--surface);box-shadow:var(--shadow-border)}
+.collection-switcher{position:relative;isolation:isolate;display:inline-flex;align-items:center;gap:4px;height:32px;padding:0 4px;border-radius:999px;background:var(--surface);box-shadow:var(--shadow-border)}
 .collection-selection{position:absolute;left:4px;top:4px;width:36px;height:24px;border-radius:999px;background:var(--soft);box-shadow:var(--shadow-border);pointer-events:none;transition:transform 220ms cubic-bezier(.32,.72,0,1)}
 .collection-switcher[data-motion="instant"] .collection-selection{transition:none}
 .collection-choice{width:36px;min-width:36px;padding:0;z-index:1}

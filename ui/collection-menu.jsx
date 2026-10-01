@@ -13,7 +13,7 @@ function CollectionMenu({initialValue,onValueChange}){
  const [animated,setAnimated]=useState(false);
  const change=(next,event)=>{const animate=event.detail>0;setAnimated(animate);setValue(next);onValueChange(next,{animate});};
  return <div className="collection-switcher" role="group" aria-label="Library collection" data-motion={animated?'animated':'instant'}>
-  <span className="collection-selection" aria-hidden="true" style={{transform:`translateX(${collections.findIndex(([id])=>id===value)*36}px)`}}/>
+  <span className="collection-selection" aria-hidden="true" style={{transform:`translateX(${collections.findIndex(([id])=>id===value)*40}px)`}}/>
   {collections.map(([id,label,icon])=><HeaderButton key={id} className="collection-choice" aria-label={label} title={label} aria-pressed={value===id} onClick={event=>{if(value!==id)change(id,event);}}>
    <CollectionIcon icon={icon}/>
   </HeaderButton>)}
