@@ -1,4 +1,5 @@
-// The card and expanded media occupy one continuous space. Only transform/opacity tween.
+// The card and expanded media occupy one continuous space. A viewport mask
+// preserves occlusion while transform/opacity move the existing media.
 export function cardTransform(from, to, container) {
   if (![from,to,container].every(r => r && r.width > 0 && r.height > 0)) return null;
   const scale=Math.min(from.width/to.width,from.height/to.height);
@@ -7,10 +8,19 @@ export function cardTransform(from, to, container) {
     transform:`translate(${from.left+from.width/2-to.left-to.width/2}px, ${from.top+from.height/2-to.top-to.height/2}px) scale(${scale})`
   };
 }
-export function createDetailMotion(dialog, sourceRect) {
+// Clip in viewport space, independently of the media's scaled coordinate system.
+// The top layer must not reveal the part that was behind the sticky navigation.
+export function cardViewportClip(from, container, viewport) {
+  if (!from || !container || !viewport || from.top >= viewport.top ||
+      from.bottom <= viewport.top || from.top >= viewport.bottom) return null;
+  const inset = top => `inset(${top-container.top}px ${container.right-viewport.right}px ${container.bottom-viewport.bottom}px ${viewport.left-container.left}px)`;
+  return {covered:inset(viewport.top),clear:inset(0)};
+}
+export function createDetailMotion(dialog, sourceRect, headerBottom=()=>0) {
   const reduced=matchMedia('(prefers-reduced-motion: reduce)');
   let animations=[],generation=0,phase='idle',closeResolve=null,shadowObserver=null,returnLayer=null;
   const media=()=>dialog.querySelector('.detail-media');
+  const stage=()=>dialog.querySelector('#detail-stage');
   const track=()=>dialog.querySelector('.album-track');
   const slides=()=>[...dialog.querySelectorAll('.album-slide')];
   const primary=()=>slides()[0]||media();
@@ -52,6 +62,12 @@ export function createDetailMotion(dialog, sourceRect) {
     if(!from||from.bottom<=0||from.top>=innerHeight||!target||!container)return null;
     return cardTransform(from,target.getBoundingClientRect(),container.getBoundingClientRect());
   }
+  function viewportClip(from=sourceRect()) {
+    const container=stage();
+    if(!container)return null;
+    return cardViewportClip(from,container.getBoundingClientRect(),
+      {top:Math.max(0,headerBottom()),left:0,right:innerWidth,bottom:innerHeight});
+  }
   function completed(token,callback){
     Promise.allSettled(animations.map(a=>a.finished)).then(()=>{
       if(token!==generation)return;
@@ -70,6 +86,8 @@ export function createDetailMotion(dialog, sourceRect) {
         animate(target,[{transform:g.transform},{transform:'none'}],duration);
       }else animate(target,[{opacity:0},{opacity:1}],duration,'ease');
     }
+    const clip=g&&!reduced.matches?viewportClip(from):null;
+    if(clip)animate(stage(),[{clipPath:clip.covered},{clipPath:clip.clear}],duration);
     // The remaining attachments have no matching grid object. Reveal them in their own space.
     for(const neighbor of slides().slice(1))animate(neighbor,
       [{opacity:0,transform:reduced.matches?'none':'translateX(8px)'},{opacity:1,transform:'none'}],
@@ -95,6 +113,7 @@ export function createDetailMotion(dialog, sourceRect) {
     const mainFrame=target?sample(target):null,neighborFrames=neighbors.map(sample),panelFrames=panels().filter(Boolean).map(sample);
     const shadowFrames=shadows().map(sample),oldOrigin=target?.style.transformOrigin;
     const backdropOpacity=getComputedStyle(dialog,'::backdrop').opacity;
+    const stageClip=getComputedStyle(stage()).clipPath;
     stop();phase='closing';
     if(!enabled){dialog.close();phase='idle';return Promise.resolve();}
     const g=geometry(),morph=g&&coverVisible&&!reduced.matches,duration=reduced.matches?100:260;
@@ -107,7 +126,7 @@ export function createDetailMotion(dialog, sourceRect) {
         // single object to the grid. Never scroll the whole album back through its other images.
         returnLayer=document.createElement('div');returnLayer.className='album-return';returnLayer.setAttribute('aria-hidden','true');
         Object.assign(returnLayer.style,{left:`${activeRect.left+activeRect.width/2-width/2}px`,top:`${activeRect.top+activeRect.height/2-height/2}px`,width:`${width}px`,height:`${height}px`});
-        frame.style.transform='none';returnLayer.append(frame);dialog.append(returnLayer);album.style.visibility='hidden';
+        frame.style.transform='none';returnLayer.append(frame);stage().append(returnLayer);album.style.visibility='hidden';
         const coverRect=asset.getBoundingClientRect(),to=cardTransform(sourceRect(),coverRect,returnLayer.getBoundingClientRect());
         const scale=Math.min(activeRect.width/assetWidth,activeRect.height/assetHeight);
         returnLayer.style.transformOrigin=to.origin;
@@ -120,6 +139,8 @@ export function createDetailMotion(dialog, sourceRect) {
       animate(target,[{transform:mainFrame.transform,opacity:mainFrame.opacity},
         morph?{transform:g.transform,opacity:1}:{transform:'none',opacity:0}],duration);
     }
+    const clip=g&&!reduced.matches?viewportClip():null;
+    if(clip)animate(stage(),[{clipPath:stageClip==='none'?clip.clear:stageClip},{clipPath:clip.covered}],duration);
     for(const frame of neighborFrames)animate(frame.node,
       [{opacity:frame.opacity,transform:frame.transform},{opacity:0,transform:reduced.matches?'none':'translateX(8px)'}],
       reduced.matches?100:120);

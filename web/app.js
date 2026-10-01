@@ -11,7 +11,7 @@ let selectedFolders=[],folderOptionSignature='';
 const gridCleanups=[],detailCleanups=[],players=new Set(), imageCache=new Map();
 const dialog=$('#detail');
 let detailSource=null;
-const detailMotion=createDetailMotion(dialog,()=>detailSource?.getBoundingClientRect());
+const detailMotion=createDetailMotion(dialog,()=>detailSource?.getBoundingClientRect(),()=>document.querySelector('.topbar')?.getBoundingClientRect().bottom||0);
 const navigationMotion=createNavigationMotion($('#captures'),renderGrid);
 function markDetailSource(id){detailSource?.classList.remove('detail-source');detailSource=document.querySelector(`[data-id="${id}"] .card-surface`);detailSource?.classList.add('detail-source');}
 async function api(path,method='GET',data){const r=window.libraryAPI?await window.libraryAPI.request(path,method,data):await fetch(path,{method,headers:{'X-Capture-Token':token,...(data?{'Content-Type':'application/json'}:{})},body:data?JSON.stringify(data):undefined});if(!r.ok){let e;try{e=await r.json();}catch{}throw Error(e?.error||'Could not reach your library.');}return r;}

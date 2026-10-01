@@ -5,7 +5,7 @@
   "scripts": {
     "build:navigation": "node scripts/build-navigation.mjs",
     "build": "node scripts/build-cloud.mjs",
-    "test": "node --test tests/extension_logic.test.cjs tests/cloud_worker.test.mjs tests/theme.test.cjs tests/folders.test.mjs tests/navigation_motion.test.mjs tests/grid_cache.test.mjs"
+    "test": "node --test tests/extension_logic.test.cjs tests/cloud_worker.test.mjs tests/theme.test.cjs tests/folders.test.mjs tests/navigation_motion.test.mjs tests/grid_cache.test.mjs tests/detail_motion.test.mjs"
   },
   "dependencies": {
     "@radix-ui/react-dropdown-menu": "2.1.24",
