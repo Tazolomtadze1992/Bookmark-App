@@ -5,6 +5,10 @@ const {runInNewContext}=require('node:vm');
 const source=readFileSync('web/theme.js','utf8');
 function load(saved,dark=false,blocked=false,withToggle=false){
  const events={},dom={},media={},root={dataset:{}};
+ const frames=new Map();let frameId=0;
+ const requestAnimationFrame=fn=>{frames.set(++frameId,fn);return frameId;};
+ const cancelAnimationFrame=id=>frames.delete(id);
+ const paint=()=>{const current=[...frames.values()];frames.clear();current.forEach(fn=>fn());};
  const buttons=['system','light','dark'].map(value=>({dataset:{themeChoice:value},pressed:'false',setAttribute(k,v){this.pressed=v;},addEventListener(k,fn){this.click=fn;}}));
  const orbit={style:{},moving:false,getAnimations(){return this.moving?[{playState:'running'}]:[];}},bodies=[{style:{}},{style:{}}];
  const toggle={dataset:{themeChoice:'dark',themeToggle:''},setAttribute(k,v){this[k]=v;},addEventListener(k,fn){this.click=fn;},querySelector:()=>orbit,querySelectorAll:()=>bodies};
@@ -13,8 +17,8 @@ function load(saved,dark=false,blocked=false,withToggle=false){
  const storage={value:saved,getItem(){if(blocked)throw Error('blocked');return this.value;},setItem(k,v){if(blocked)throw Error('blocked');this.value=v;}};
  const system={matches:dark,addEventListener:(k,fn)=>media[k]=fn};
  const document={documentElement:root,querySelectorAll:()=>buttons,addEventListener:(k,fn)=>dom[k]=fn};
- runInNewContext(source,{document,matchMedia:()=>system,localStorage:storage,addEventListener:(k,fn)=>events[k]=fn});
- dom.DOMContentLoaded();dom.change=event=>buttons.find(b=>b.dataset.themeChoice===event.target.value).click();return{events,dom,select,root,storage,system,media,toggle,orbit,bodies};
+ runInNewContext(source,{document,matchMedia:()=>system,localStorage:storage,addEventListener:(k,fn)=>events[k]=fn,requestAnimationFrame,cancelAnimationFrame});
+ dom.DOMContentLoaded();dom.change=event=>buttons.find(b=>b.dataset.themeChoice===event.target.value).click();return{events,dom,select,root,storage,system,media,toggle,orbit,bodies,paint,frames};
 }
 test('system default follows OS changes, explicit choice persists and resists OS changes',()=>{
  const t=load(null,true);assert.equal(t.root.dataset.theme,'dark');assert.equal(t.select.value,'system');
@@ -40,4 +44,25 @@ test('rapid theme reversals retrace the current arc and keyboard changes stay in
  const t=load('light',false,false,true);t.toggle.click({detail:1});t.orbit.moving=true;t.toggle.click({detail:1});
  assert.equal(t.orbit.style.transform,'rotate(0deg)');t.toggle.click({detail:1});assert.equal(t.orbit.style.transform,'rotate(180deg)');
  t.toggle.click({detail:0});assert.equal(t.toggle.dataset.themeMotion,'instant');assert.equal(t.root.dataset.theme,'light');
+});
+test('theme colors commit immediately for pointer, keyboard, system and cross-tab changes; hover fades always recover',()=>{
+ for(const change of [
+  t=>t.toggle.click({detail:1}),
+  t=>t.toggle.click({detail:0}),
+  t=>t.events.storage({key:'reference-library-theme',newValue:'dark'}),
+  t=>{t.events.storage({key:null,newValue:null});t.system.matches=true;t.media.change();}
+ ]){
+  const t=load('light',false,false,true);
+  assert.equal('themeChanging' in t.root.dataset,false);assert.equal(t.frames.size,0);
+  change(t);assert.equal(t.root.dataset.theme,'dark');assert.equal('themeChanging' in t.root.dataset,true);
+  t.paint();assert.equal('themeChanging' in t.root.dataset,true);
+  t.paint();assert.equal('themeChanging' in t.root.dataset,false);assert.equal(t.frames.size,0);
+ }
+});
+test('rapid theme changes cannot let stale cleanup release the latest color commit early',()=>{
+ const t=load('light',false,false,true);
+ t.toggle.click({detail:1});t.paint();t.toggle.click({detail:1});
+ assert.equal(t.root.dataset.theme,'light');assert.equal(t.frames.size,1);
+ t.paint();assert.equal('themeChanging' in t.root.dataset,true);
+ t.paint();assert.equal('themeChanging' in t.root.dataset,false);assert.equal(t.frames.size,0);
 });
