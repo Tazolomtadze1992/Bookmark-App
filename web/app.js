@@ -220,7 +220,7 @@ dialog.addEventListener('click',e=>{
 },true);
 
 dialog.addEventListener('close',()=>{detailPointer=null;detailMotion.settle();for(const c of detailCleanups.splice(0))c();$('#detail-stage').replaceChildren();detailSource?.classList.remove('detail-source');detailSource=null;document.body.classList.remove('detail-open');activeId=null;closingDetail=null;for(const p of players)p.sync();returnFocus?.focus({preventScroll:true});if(pendingRefresh){pendingRefresh=false;const id=returnFocus?.closest('[data-id]')?.dataset.id;refresh().then(()=>{document.querySelector(`[data-id="${id}"] .open-card`)?.focus({preventScroll:true});}).catch(error);}});
-mountCollectionMenu($('#collection-menu'),{value:section,onValueChange:(value,{animate})=>{const direction=value==='website'?1:-1;section=value;query='';if(state){renderFolders();navigationMotion.update({animate,direction}).catch(error);}}});
+mountCollectionMenu($('#collection-menu'),{value:section,themeContainer:$('#theme-control'),onValueChange:(value,{animate})=>{const direction=value==='website'?1:-1;section=value;query='';if(state){renderFolders();navigationMotion.update({animate,direction}).catch(error);}}});
 if(!window.libraryAPI?.cloud){const link=el('a','Cloud saves');link.id='cloud-status';link.href='/cloud';document.querySelector('.account-panel').append(link);}
 if(!window.libraryAPI?.cloud){const management=$('#library-management');const showManagement=()=>{management.hidden=location.hash!=='#manage';};addEventListener('hashchange',showManagement);showManagement();}
 window.addEventListener('library-refresh',()=>refresh().catch(error));

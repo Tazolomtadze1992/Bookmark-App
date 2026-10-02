@@ -279,17 +279,18 @@ html{scrollbar-gutter:stable}
 .collection-choice[aria-pressed="true"] .collection-icon{opacity:1}
 :root[data-theme="dark"] .collection-choice .collection-icon{filter:brightness(0) invert(1)}
 @media(hover:hover) and (pointer:fine){.collection-switcher .collection-choice:hover::before{background:transparent}.collection-choice:hover .collection-icon{opacity:1}}
-/* A small anchored label: mouse reveal is gentle; keyboard focus is immediate. */
-.nav-tooltip{z-index:50;padding:6px 10px;border-radius:7px;background:oklch(0.252 0 0);color:oklch(0.985 0 0);font-family:inherit;font-size:12px;font-weight:500;line-height:1.25;box-shadow:0 2px 8px oklch(0 0 0 / .12);transform-origin:var(--radix-tooltip-content-transform-origin);--tooltip-offset:-2px}
+/* Only the first delayed reveal animates; warm handoffs and keyboard focus are instant. */
+.nav-tooltip{z-index:50;display:flex;align-items:center;gap:8px;padding:6px 8px 6px 10px;border-radius:10px;background:var(--surface);color:var(--category-ink);font-family:inherit;font-size:12px;font-weight:500;line-height:1.25;box-shadow:var(--shadow-border);transform-origin:var(--radix-tooltip-content-transform-origin);--tooltip-offset:-2px}
 .nav-tooltip[data-side="top"]{--tooltip-offset:2px}
-.nav-tooltip[data-state="delayed-open"],.nav-tooltip[data-state="instant-open"]{animation:nav-tooltip-in 150ms cubic-bezier(.19,1,.22,1) both}
-.nav-tooltip[data-state="closed"]{animation:nav-tooltip-out 100ms cubic-bezier(.19,1,.22,1) both}
+.nav-tooltip[data-state="delayed-open"]{animation:nav-tooltip-in 150ms cubic-bezier(.19,1,.22,1) both}
+.nav-tooltip[data-state="instant-open"],.nav-tooltip[data-state="closed"]{animation:none}
 @keyframes nav-tooltip-in{from{opacity:0;transform:translateY(var(--tooltip-offset)) scale(.96)}to{opacity:1;transform:none}}
-@keyframes nav-tooltip-out{to{opacity:0;transform:translateY(var(--tooltip-offset)) scale(.96)}}
-.nav-tooltip[data-motion="instant"]{animation:none}
-@media(prefers-reduced-motion:reduce){.nav-tooltip[data-state="delayed-open"],.nav-tooltip[data-state="instant-open"]{animation:nav-tooltip-fade-in 100ms ease both}.nav-tooltip[data-state="closed"]{animation:nav-tooltip-fade-out 80ms ease both}.nav-tooltip[data-motion="instant"]{animation:none}}
+@media(prefers-reduced-motion:reduce){.nav-tooltip[data-state="delayed-open"]{animation:nav-tooltip-fade-in 100ms ease both}}
 @keyframes nav-tooltip-fade-in{from{opacity:0}to{opacity:1}}
-@keyframes nav-tooltip-fade-out{to{opacity:0}}
+.nav-kbd{display:inline-flex;align-items:center;justify-content:center;height:20px;min-width:20px;padding:0 4px;border-radius:4px;background:var(--category-bg);color:var(--category-ink);box-shadow:var(--shadow-border);font-family:inherit;font-size:11px;font-weight:500;line-height:1;pointer-events:none;user-select:none}
+.theme-control{display:flex;order:2;margin-left:auto;flex:none}
+.theme-control .theme-icon{margin-left:0}
+@media(max-width:1000px){.topbar .theme-control{order:1}}
 .theme-icon{width:40px;flex:none;order:2;margin-left:auto;padding:0;border-radius:50%}
 .theme-icon::before{inset:4px}
 .theme-icon img{width:16px;height:16px;filter:var(--icon-filter)}

@@ -17,9 +17,16 @@ function load(saved,dark=false,blocked=false,withToggle=false){
  const storage={value:saved,getItem(){if(blocked)throw Error('blocked');return this.value;},setItem(k,v){if(blocked)throw Error('blocked');this.value=v;}};
  const system={matches:dark,addEventListener:(k,fn)=>media[k]=fn};
  const document={documentElement:root,querySelectorAll:()=>buttons,addEventListener:(k,fn)=>dom[k]=fn};
- runInNewContext(source,{document,matchMedia:()=>system,localStorage:storage,addEventListener:(k,fn)=>events[k]=fn,requestAnimationFrame,cancelAnimationFrame});
- dom.DOMContentLoaded();dom.change=event=>buttons.find(b=>b.dataset.themeChoice===event.target.value).click();return{events,dom,select,root,storage,system,media,toggle,orbit,bodies,paint,frames};
+ const context={document,matchMedia:()=>system,localStorage:storage,addEventListener:(k,fn)=>events[k]=fn,requestAnimationFrame,cancelAnimationFrame};
+ runInNewContext(source,context);
+ dom.DOMContentLoaded();dom.change=event=>buttons.find(b=>b.dataset.themeChoice===event.target.value).click();return{events,dom,select,root,storage,system,media,toggle,orbit,bodies,paint,frames,api:context.libraryTheme};
 }
+test('header and shortcut theme API share persistence, labels and instant keyboard motion',()=>{
+ const t=load('light',false,false,true);
+ t.api.toggle({animate:true});assert.equal(t.storage.value,'dark');assert.equal(t.toggle['aria-label'],'Switch to light mode');assert.equal(t.toggle.dataset.themeMotion,'orbit');
+ t.api.toggle();assert.equal(t.storage.value,'light');assert.equal(t.toggle.dataset.themeMotion,'instant');assert.equal(t.toggle['aria-label'],'Switch to dark mode');
+ t.api.refresh();assert.equal(t.root.dataset.theme,'light');
+});
 test('system default follows OS changes, explicit choice persists and resists OS changes',()=>{
  const t=load(null,true);assert.equal(t.root.dataset.theme,'dark');assert.equal(t.select.value,'system');
  t.system.matches=false;t.media.change();assert.equal(t.root.dataset.theme,'light');
