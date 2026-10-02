@@ -6,7 +6,8 @@ import * as TooltipPrimitive from '@radix-ui/react-tooltip';
 const TooltipProvider=TooltipPrimitive.Provider;
 const Tooltip=TooltipPrimitive.Root;
 const TooltipTrigger=TooltipPrimitive.Trigger;
-const TooltipContent=forwardRef(function TooltipContent({className='',sideOffset=6,...props},ref){
+// Triggers extend 4px below their visible surface; -2px leaves a visible 2px gap.
+const TooltipContent=forwardRef(function TooltipContent({className='',sideOffset=-2,...props},ref){
  return <TooltipPrimitive.Portal>
   <TooltipPrimitive.Content ref={ref} sideOffset={sideOffset} collisionPadding={8}
    className={`nav-tooltip ${className}`} {...props}/>
