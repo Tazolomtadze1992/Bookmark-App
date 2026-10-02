@@ -271,14 +271,14 @@ html{scrollbar-gutter:stable}
 .header-button[data-state="open"]::before{background:var(--category-hover)}
 .collection-icon{width:16px;height:16px;flex:none;filter:var(--icon-filter)}
 .collection-switcher{position:relative;isolation:isolate;display:inline-flex;align-items:center;gap:4px;height:32px;padding:0 4px;border-radius:999px;background:var(--surface);box-shadow:var(--shadow-border)}
-.collection-selection{position:absolute;left:4px;top:4px;width:36px;height:24px;border-radius:999px;background:var(--soft);box-shadow:var(--shadow-border);pointer-events:none;transition:transform 220ms cubic-bezier(.32,.72,0,1)}
+.collection-selection{position:absolute;left:4px;top:4px;width:36px;height:24px;border-radius:999px;background:var(--category-bg);box-shadow:var(--shadow-border);pointer-events:none;transition:transform 220ms cubic-bezier(.32,.72,0,1)}
 .collection-switcher[data-motion="instant"] .collection-selection{transition:none}
 .collection-choice{width:36px;min-width:36px;padding:0;z-index:1}
 .collection-choice::before{inset:8px 0;background:transparent;transition:background-color var(--theme-color-duration, 140ms) ease,box-shadow var(--theme-color-duration, 150ms) ease-out}
 .collection-choice .collection-icon{opacity:.65;filter:brightness(0);transition:opacity 140ms ease}
 .collection-choice[aria-pressed="true"] .collection-icon{opacity:1}
 :root[data-theme="dark"] .collection-choice .collection-icon{filter:brightness(0) invert(1)}
-@media(hover:hover) and (pointer:fine){.collection-switcher .collection-choice:hover::before{background:var(--soft)}.collection-choice[aria-pressed="true"]:hover::before{background:transparent}.collection-choice:hover .collection-icon{opacity:1}}
+@media(hover:hover) and (pointer:fine){.collection-switcher .collection-choice:hover::before{background:var(--category-bg)}.collection-choice[aria-pressed="true"]:hover::before{background:transparent}.collection-choice:hover .collection-icon{opacity:1}}
 .theme-icon{width:40px;flex:none;order:2;margin-left:auto;padding:0;border-radius:50%}
 .theme-icon::before{inset:4px}
 .theme-icon img{width:16px;height:16px;filter:var(--icon-filter)}
