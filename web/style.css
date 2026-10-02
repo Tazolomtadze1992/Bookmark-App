@@ -256,7 +256,7 @@ html{scrollbar-gutter:stable}
 
 
 /* Category states use a neutral OKLCH scale, with inverted selected colors. */
-:root{--category-bg:oklch(0.945 0 0);--category-hover:oklch(0.915 0 0);--category-active:oklch(0.18 0 0);--category-active-hover:oklch(0.24 0 0);--category-ink:oklch(0.28 0 0);--category-active-ink:oklch(0.985 0 0)}
+:root{--category-bg:oklch(0.955 0 0);--category-hover:oklch(0.937 0 0);--category-active:oklch(0.18 0 0);--category-active-hover:oklch(0.24 0 0);--category-ink:oklch(0.28 0 0);--category-active-ink:oklch(0.985 0 0)}
 :root[data-theme="dark"]{--category-bg:oklch(0.252 0 0);--category-hover:oklch(0.268 0 0);--category-active:oklch(0.94 0 0);--category-active-hover:oklch(0.92 0 0);--category-ink:oklch(0.94 0 0);--category-active-ink:oklch(0.18 0 0)}
 .topbar #folder-filters{gap:8px}
 .folder-pill{color:var(--category-ink)}
