@@ -321,3 +321,15 @@ html{scrollbar-gutter:stable}
 /* Theme swaps are atomic; hover fades resume after the new colors paint.
    This token only controls color/surface transitions, never icon or viewer motion. */
 :root[data-theme-changing]{--theme-color-duration:0ms}
+
+/* Website deletion stays separate from the thumbnail's source link. */
+.website-thumbnail{position:relative}
+.website-delete{position:absolute;top:4px;right:4px;z-index:2;width:44px;height:44px;display:grid;place-items:center;padding:6px;background:transparent;color:var(--ink);border:0;border-radius:999px;isolation:isolate;transition:opacity 120ms ease-out}
+.website-delete::before{content:'';position:absolute;inset:6px;border-radius:inherit;background:var(--surface);box-shadow:var(--shadow-border);z-index:-1;transition:background-color 120ms ease-out,transform 120ms ease-out}
+.website-delete img{width:16px;height:16px;filter:var(--icon-filter)}
+.website-delete:hover::before{background:var(--category-hover)}
+.website-delete:active:not(:disabled)::before{transform:scale(.96)}
+.website-delete:focus-visible{outline:2px solid var(--focus);outline-offset:0}
+.website-delete:disabled{cursor:wait}
+@media(hover:hover) and (pointer:fine){.website-delete{opacity:0;pointer-events:none}.website-card:hover .website-delete,.website-card:focus-within .website-delete{opacity:1;pointer-events:auto}}
+@media(prefers-reduced-motion:reduce){.website-delete,.website-delete::before{transition:none}.website-delete:active:not(:disabled)::before{transform:none}}
