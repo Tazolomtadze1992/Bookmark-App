@@ -322,14 +322,17 @@ html{scrollbar-gutter:stable}
    This token only controls color/surface transitions, never icon or viewer motion. */
 :root[data-theme-changing]{--theme-color-duration:0ms}
 
+/* One red hue; dark mode lowers lightness/chroma to avoid a glowing control. */
+:root{--destructive:oklch(0.55 0.2 25);--destructive-hover:oklch(0.5 0.2 25);--destructive-ink:oklch(1 0 0)}
+:root[data-theme="dark"]{--destructive:oklch(0.48 0.16 25);--destructive-hover:oklch(0.53 0.18 25)}
 /* Website deletion stays separate from the thumbnail's source link. */
 .website-thumbnail{position:relative}
-.website-delete{position:absolute;top:4px;right:4px;z-index:2;width:44px;height:44px;display:grid;place-items:center;padding:6px;background:transparent;color:var(--ink);border:0;border-radius:999px;isolation:isolate;transition:opacity 120ms ease-out}
-.website-delete::before{content:'';position:absolute;inset:6px;border-radius:inherit;background:var(--surface);box-shadow:var(--shadow-border);z-index:-1;transition:background-color 120ms ease-out,transform 120ms ease-out}
-.website-delete img{width:16px;height:16px;filter:var(--icon-filter)}
-.website-delete:hover::before{background:var(--category-hover)}
+.website-delete{position:absolute;top:4px;right:4px;z-index:2;width:44px;height:44px;display:grid;place-items:center;padding:6px;background:transparent;color:var(--destructive-ink);border:0;border-radius:999px;isolation:isolate;transition:opacity 120ms ease-out}
+.website-delete::before{content:'';position:absolute;inset:6px;border-radius:inherit;background:var(--destructive);box-shadow:var(--shadow-border);z-index:-1;transition:background-color var(--theme-color-duration, 120ms) ease-out,transform 120ms ease-out}
+.website-delete-icon{width:16px;height:16px;background:var(--destructive-ink);mask:url("/icons/trash.svg") center/contain no-repeat}
+.website-delete:hover::before{background:var(--destructive-hover)}
 .website-delete:active:not(:disabled)::before{transform:scale(.96)}
-.website-delete:focus-visible{outline:2px solid var(--focus);outline-offset:0}
+.website-delete:focus-visible{outline:2px solid var(--destructive);outline-offset:0}
 .website-delete:disabled{cursor:wait}
 @media(hover:hover) and (pointer:fine){.website-delete{opacity:0;pointer-events:none}.website-card:hover .website-delete,.website-card:focus-within .website-delete{opacity:1;pointer-events:auto}}
 @media(prefers-reduced-motion:reduce){.website-delete,.website-delete::before{transition:none}.website-delete:active:not(:disabled)::before{transform:none}}
