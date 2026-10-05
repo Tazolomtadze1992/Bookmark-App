@@ -322,9 +322,9 @@ html{scrollbar-gutter:stable}
    This token only controls color/surface transitions, never icon or viewer motion. */
 :root[data-theme-changing]{--theme-color-duration:0ms}
 
-/* One red hue; dark mode lowers lightness/chroma to avoid a glowing control. */
-:root{--destructive:oklch(0.55 0.2 25);--destructive-hover:oklch(0.5 0.2 25);--destructive-ink:oklch(1 0 0)}
-:root[data-theme="dark"]{--destructive:oklch(0.48 0.16 25);--destructive-hover:oklch(0.53 0.18 25)}
+/* Quiet destructive surfaces: low-chroma tint with a readable muted red icon. */
+:root{--destructive:oklch(0.965 0.012 25);--destructive-hover:oklch(0.945 0.02 25);--destructive-ink:oklch(0.5 0.11 25)}
+:root[data-theme="dark"]{--destructive:oklch(0.255 0.018 25);--destructive-hover:oklch(0.28 0.024 25);--destructive-ink:oklch(0.74 0.095 25)}
 /* Website deletion stays separate from the thumbnail's source link. */
 .website-thumbnail{position:relative}
 .website-delete{position:absolute;top:4px;right:4px;z-index:2;width:44px;height:44px;display:grid;place-items:center;padding:6px;background:transparent;color:var(--destructive-ink);border:0;border-radius:999px;isolation:isolate;transition:opacity 120ms ease-out}
@@ -332,7 +332,7 @@ html{scrollbar-gutter:stable}
 .website-delete-icon{width:16px;height:16px;background:var(--destructive-ink);mask:url("/icons/trash.svg") center/contain no-repeat}
 .website-delete:hover::before{background:var(--destructive-hover)}
 .website-delete:active:not(:disabled)::before{transform:scale(.96)}
-.website-delete:focus-visible{outline:2px solid var(--destructive);outline-offset:0}
+.website-delete:focus-visible{outline:2px solid var(--destructive-ink);outline-offset:0}
 .website-delete:disabled{cursor:wait}
 @media(hover:hover) and (pointer:fine){.website-delete{opacity:0;pointer-events:none}.website-card:hover .website-delete,.website-card:focus-within .website-delete{opacity:1;pointer-events:auto}}
 @media(prefers-reduced-motion:reduce){.website-delete,.website-delete::before{transition:none}.website-delete:active:not(:disabled)::before{transform:none}}
