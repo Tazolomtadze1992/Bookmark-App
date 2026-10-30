@@ -55,6 +55,6 @@ npm test
 node --check web/app.js
 ```
 
-Controlled tests do not prove extension installation, live OAuth or playback. Real-source evidence and limitations are recorded in `PROJECT_BRIEF.md`, section 27. Earlier reports are historical checkpoints. Icons in `web/icons` are vendored Phosphor assets with their included license.
+Controlled tests do not prove extension installation, live OAuth or playback. Real-source evidence and limitations are recorded in `PROJECT_BRIEF.md`, section 27. Earlier reports are historical checkpoints. Icons are shared from `web/icons`. The original Phosphor assets retain their included license; the search and close SVGs were supplied by the owner from Central Icons.
 
 Category filtering updates immediately without fading the result grid. Unchanged cards stay connected, filtered videos pause with their playback position retained, and up to 40 hidden cards are cached for quick returns. Deleted or changed references release their old media. Masonry spans are measured together before the next paint, with ResizeObserver handling later image loads and viewport changes.
