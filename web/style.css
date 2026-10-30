@@ -367,37 +367,6 @@ html{scrollbar-gutter:stable}
  .search-control[data-motion="animated"][data-open="false"] .search-entry{transition:opacity 100ms ease}
 }
 
-/* Central Icons removal controls: compact surfaces, generous hit areas. */
-.remove-reference{position:relative;width:44px;height:44px;padding:0;background:transparent;border-radius:50%;isolation:isolate;flex:none}
-.remove-reference::before{content:'';position:absolute;inset:6px;border-radius:50%;background:var(--floating);box-shadow:var(--surface-ring),0 2px 6px oklch(0 0 0 / .08);z-index:-1;transition:background-color 120ms ease}
-.remove-reference img{display:block;width:16px;height:16px;opacity:.7;filter:var(--icon-filter);transition:opacity 120ms ease}
-.remove-reference:focus-visible{outline-offset:-3px}
-.website-remove{position:absolute;right:4px;top:4px;z-index:3}
-.website-remove:hover{background:transparent}
-#remove-detail{position:absolute;right:24px;top:14px;z-index:5}
-#remove-detail::before{background:oklch(0 0 0 / .72);box-shadow:0 0 0 1px oklch(1 0 0 / .08),0 1px 2px oklch(0 0 0 / .12)}
-#remove-detail img{filter:brightness(0) invert(1);opacity:.85}
-#remove-detail:hover{background:transparent}
-#remove-detail:focus-visible{outline-color:var(--focus)}
-@media(hover:hover) and (pointer:fine){
- .website-remove{opacity:0;pointer-events:none;transition:opacity 120ms ease}
- .website-card:hover .website-remove,.website-card:focus-within .website-remove{opacity:1;pointer-events:auto}
- .remove-reference:hover img{opacity:1}
- .website-remove:hover::before{background:var(--hover)}
- #remove-detail:hover::before{background:oklch(0 0 0 / .84)}
-}
-/* Sonner owns toast behavior and stacking; our tokens supply the neutral theme. */
-[data-sonner-toaster]{font-family:inherit!important;--width:320px}
-[data-sonner-toast].library-toast{background:var(--floating)!important;color:var(--ink)!important;border:1px solid var(--line)!important;border-radius:14px!important;padding:10px 12px 10px 16px!important;box-shadow:var(--surface-shadow)!important;gap:16px!important;font-size:13px!important;transition-duration:200ms,200ms,200ms,150ms}
-[data-sonner-toast] .library-toast-action{position:relative;background:var(--soft)!important;color:var(--ink)!important;font-family:inherit!important;border-radius:7px!important;height:32px!important;padding-inline:10px!important;flex-shrink:0}
-.library-toast-action::after{content:'';position:absolute;inset:-6px 0}
-[data-sonner-toast] .library-toast-action:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
-@media(hover:hover) and (pointer:fine){[data-sonner-toast] .library-toast-action:hover{background:var(--hover)!important}}
-@media(prefers-reduced-motion:reduce){
- .remove-reference,.remove-reference::before,.remove-reference img,.website-remove{transition:none}
- [data-sonner-toast].library-toast{transition-property:opacity!important;transition-duration:100ms!important}
-}
-
 /* Theme swaps are atomic; hover fades resume after the new colors paint.
    This token only controls color/surface transitions, never icon or viewer motion. */
 :root[data-theme-changing]{--theme-color-duration:0ms}

@@ -25,8 +25,8 @@ export function createDetailMotion(dialog, sourceRect, headerBottom=()=>0) {
   const slides=()=>[...dialog.querySelectorAll('.album-slide')];
   const primary=()=>slides()[0]||media();
   const cover=()=>slides()[0]?.querySelector('.media-image,.motion-video,.text-preview')||dialog.querySelector('.detail-media>.motion-wrap,.detail-media>.media-image,.detail-media>.text-preview');
-  const panels=()=>[dialog.querySelector('#close-detail'),dialog.querySelector('#remove-detail'),dialog.querySelector('#detail-footer .source-link')];
-  const panelOffset=node=>`translateY(${node.id==='close-detail'||node.id==='remove-detail'?-4:4}px)`;
+  const panels=()=>[dialog.querySelector('#close-detail'),dialog.querySelector('#detail-footer .source-link')];
+  const panelOffset=node=>`translateY(${node.id==='close-detail'?-4:4}px)`;
   const panelEasing='cubic-bezier(.25,.46,.45,.94)';
   const shadows=()=>[...dialog.querySelectorAll('.detail-shadow')];
   function prepareShadows(){
