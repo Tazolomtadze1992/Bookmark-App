@@ -171,7 +171,10 @@ function renderFolders(){
  note.title=window.libraryAPI?.cloud?(state.bookmarks?.message||state.cloud_error||'Automatic X checks')+' · Manage connections at #manage.':allowancePaused?'New bookmarks and folder updates are paused by the app’s safety allowance. This estimate is not your actual X bill. See connections at #manage.':state.bookmarks?.folder_error||'Folder names and assignments come from X. Existing old-bookmark exclusions still apply.';
 }
 const searchForm=$('#library-search'),searchInput=$('#search-input'),clearSearchButton=$('#clear-search'),searchResults=$('#search-results');
-function updateSearch(){query=searchInput.value.trim();clearSearchButton.hidden=!searchInput.value;renderGrid();}
+const searchShortcutHint=$('#search-shortcut');
+searchShortcutHint.textContent=/Mac|iPhone|iPad/.test(navigator.platform)?'⌘ K':'Ctrl K';
+searchInput.title=`Search (${searchShortcutHint.textContent})`;
+function updateSearch(){query=searchInput.value.trim();clearSearchButton.hidden=!searchInput.value;searchShortcutHint.hidden=!!searchInput.value;renderGrid();}
 function clearSearch(){searchInput.value='';updateSearch();searchInput.focus();}
 searchForm.addEventListener('submit',e=>e.preventDefault());
 searchInput.addEventListener('input',e=>{if(!e.isComposing)updateSearch();});
@@ -182,7 +185,7 @@ document.addEventListener('keydown',e=>{if(searchForm.hidden||!searchShortcut(e,
 function filteredItems(){return state.captures.filter(i=>!i.fixture&&i.kind===section&&(section!=='x_post'||inFolder(i,selectedFolders,state.bookmarks?.folder_snapshot))&&matchesReference(i,metadata(i),query));}
 function renderGrid(){
  if(!state)return;renderFolders();const grid=$('#captures'),items=filteredItems();
- searchForm.hidden=false;searchInput.placeholder=section==='x_post'?'Search bookmarks…':'Search websites…';
+ searchForm.hidden=false;
  searchResults.hidden=!query;
  const resultLabel=`${items.length} ${section==='x_post'?(items.length===1?'bookmark':'bookmarks'):(items.length===1?'website':'websites')}${section==='x_post'&&selectedFolders.length?' in selected folders':''}`;
  if(searchResults.textContent!==resultLabel)searchResults.textContent=resultLabel;

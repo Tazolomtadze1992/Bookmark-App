@@ -319,22 +319,25 @@ html{scrollbar-gutter:stable}
 @media(prefers-reduced-motion:reduce){.header-button,.header-button::before,.collection-choice .collection-icon,.collection-selection,.pill-label{transition:none}.folder-pill:active:not(:focus-visible)::before,.folder-pill:active:not(:focus-visible) .pill-label,.collection-choice:active:not(:focus-visible) .collection-icon{transform:none}}
 
 /* Search uses saved metadata while the media cards stay visually unchanged. */
-.library-search{order:2;display:flex;align-items:center;gap:8px;width:240px;min-width:180px;height:40px;margin:0 0 0 auto;padding:0 0 0 12px;border-radius:999px;background:var(--surface);box-shadow:var(--shadow-border);color:var(--ink);flex:none}
+.library-search{position:relative;isolation:isolate;order:2;display:flex;align-items:center;gap:8px;width:180px;min-width:0;height:40px;margin:0 0 0 auto;padding:0 8px 0 12px;border-radius:999px;background:transparent;color:var(--ink);flex:none}
+.library-search::before{content:'';position:absolute;inset:4px 0;border-radius:inherit;z-index:-1;background:var(--surface);box-shadow:var(--shadow-border);pointer-events:none}
 .library-search>img{width:16px;height:16px;flex:none;filter:var(--icon-filter);opacity:.7}
-.library-search input{width:100%;min-width:0;height:100%;margin:0;padding:0 12px 0 0;border:0;border-radius:inherit;outline:none;background:transparent;color:inherit;font:inherit;font-size:14px;line-height:1.5;appearance:none}
+.library-search input{width:100%;min-width:0;height:100%;margin:0;padding:0;border:0;border-radius:inherit;outline:none;background:transparent;color:inherit;font:inherit;font-size:13px;line-height:1.5;appearance:none}
 .library-search input::-webkit-search-cancel-button{appearance:none}
 .library-search input::placeholder{color:var(--muted);opacity:1}
-.library-search:focus-within{outline:2px solid var(--focus);outline-offset:2px}
-.library-search button{display:grid;place-items:center;flex:none;width:40px;height:40px;padding:0;border-radius:50%;color:inherit;background:transparent}
+.library-search:focus-within::before{outline:2px solid var(--focus);outline-offset:0}
+.library-search button{display:grid;place-items:center;flex:none;width:40px;height:40px;margin-right:-8px;padding:0;border-radius:50%;color:inherit;background:transparent}
 .library-search button img{width:16px;height:16px;filter:var(--icon-filter)}
 .library-search button:focus-visible{outline:2px solid var(--focus);outline-offset:-4px}
+.search-kbd{display:inline-flex;align-items:center;justify-content:center;height:20px;flex:none;padding:0 4px;border-radius:4px;background:var(--category-bg);color:var(--muted);font-family:inherit;font-size:11px;line-height:1;white-space:nowrap;pointer-events:none;user-select:none}
 .topbar .theme-control{order:3;margin-left:0}
 .search-results{margin:0 0 18px;color:var(--muted);font-size:13px;line-height:1.5;font-variant-numeric:tabular-nums}
 .search-reset{margin:16px auto 0;min-height:44px}
 @media(hover:hover) and (pointer:fine){.library-search button:hover{background:var(--soft)}}
-@media(max-width:1000px){.library-search{order:1;flex:1;max-width:320px}.topbar .theme-control{order:2}.topbar .folder-bar{order:3}}
-@media(max-width:600px){.library-search{order:2;flex-basis:100%;width:100%;max-width:none;min-width:0;height:44px;margin:0}.library-search input{font-size:16px}.library-search button{width:44px;height:44px}.topbar .theme-control{order:1;margin-left:auto}.topbar .folder-bar{order:3}}
-@media(pointer:coarse){.library-search,.library-search button{height:44px}.library-search button{width:44px}.library-search input{font-size:16px}}
+@media(max-width:1000px){.library-search{order:1;flex:none}.topbar .theme-control{order:2}.topbar .folder-bar{order:3}}
+@media(max-width:600px){.topbar{gap:8px}.library-search{order:1;width:160px;margin-left:auto}.topbar .theme-control{order:2}.topbar .folder-bar{order:3}.library-search input{font-size:16px}.search-kbd{display:none}}
+@media(max-width:360px){.library-search{width:136px}}
+@media(pointer:coarse){.library-search,.library-search button{height:44px}.library-search::before{inset:6px 0}.library-search button{width:44px}.library-search input{font-size:16px}.search-kbd{display:none}}
 
 /* Theme swaps are atomic; hover fades resume after the new colors paint.
    This token only controls color/surface transitions, never icon or viewer motion. */
