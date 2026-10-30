@@ -1,5 +1,6 @@
 import {syncNotice} from '../web/sync-status.js';
 import {createClient} from '@supabase/supabase-js';
+import {updateReferenceTrash} from './trash.js';
 const db=createClient(SUPABASE_URL,SUPABASE_KEY);
 let user;
 const main=document.querySelector('main');
@@ -45,8 +46,8 @@ window.libraryAPI={
   }
   const image=path.match(/^\/api\/image\/([a-f0-9]{32})$/);
   if(image){const {data,error}=await db.storage.from('previews').download(`${user.id}/${image[1]}.jpg`);if(error)throw error;return new Response(data,{headers:{'Content-Type':'image/jpeg'}});}
-  if(path==='/api/trash'){
-   const {error}=await db.from('library_references').update({deleted_at:new Date().toISOString()}).eq('id',body.id);if(error)throw error;return reply({ok:true});
+  if((path==='/api/trash'||path==='/api/restore')&&method==='POST'){
+   return reply(await updateReferenceTrash(db,user.id,body,path==='/api/restore'));
   }
   if(path==='/api/refresh-media')return reply(await cloudRequest('/refresh',body));
   throw Error('This action is not available.');
@@ -79,7 +80,7 @@ const trash=document.createElement('div');trash.className='trash-list';
 action('Open Trash',async()=>{
  const {data,error}=await db.from('library_references').select('id,record').not('deleted_at','is',null);if(error)throw error;
  trash.replaceChildren();if(!data.length)trash.textContent='Trash is empty.';
- for(const row of data){const line=document.createElement('p'),button=document.createElement('button');line.append(document.createTextNode(row.record.title+' '));button.textContent='Restore';button.addEventListener('click',async()=>{button.disabled=true;const {error}=await db.from('library_references').update({deleted_at:null}).eq('id',row.id);if(error){report.textContent=error.message;button.disabled=false;return;}line.remove();window.dispatchEvent(new Event('library-refresh'));});line.append(button);trash.append(line);}
+ for(const row of data){const line=document.createElement('p'),button=document.createElement('button');line.append(document.createTextNode(row.record.title+' '));button.textContent='Restore';button.addEventListener('click',async()=>{button.disabled=true;try{await updateReferenceTrash(db,user.id,{id:row.id},true);line.remove();window.dispatchEvent(new Event('library-refresh'));}catch(error){report.textContent=error.message;button.disabled=false;}});line.append(button);trash.append(line);}
 });
 panel.append(report,trash);tools.append(summary,panel);
 tools.addEventListener('toggle',()=>{if(tools.open)connectionStatus().catch(e=>{report.textContent=e.message;});});

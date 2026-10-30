@@ -1,14 +1,16 @@
 import {syncNotice} from './sync-status.js';
 import {createDetailMotion} from './detail-motion.js';
 import {folderOptions,inFolder,toggleFolder,validFolderSelection} from './folders.js';
-import {mountCollectionMenu} from './collection-menu.js';
+import {mountCollectionMenu,mountNotifications,placeNotifications,showRemovalToast,showRemovalError} from './collection-menu.js';
 import {createNavigationMotion} from './navigation-motion.js';
 import {createGridCache} from './grid-cache.js';
 import {matchesReference,searchShortcut} from './search.js';
+import {createRemovalController,restoreReference} from './removal.js';
 const $ = s => document.querySelector(s);
 const token = $('meta[name="local-token"]').content;
 let state=null, section='x_post', query='', activeId=null,  returnFocus=null, pendingRefresh=false;
 let selectedFolders=[],folderOptionSignature='';
+let stateRevision=0;
 const gridCleanups=[],detailCleanups=[],players=new Set(), imageCache=new Map();
 const dialog=$('#detail');
 let detailSource=null;
@@ -20,6 +22,42 @@ function el(tag,text,cls){const n=document.createElement(tag);if(text)n.textCont
 function icon(name){const i=el('img');i.src=`/icons/${name}.svg`;i.alt='';return i;}
 function btn(name,action,cls=''){const b=el('button',name,cls);b.type='button';if(name)b.setAttribute('aria-label',name);b.addEventListener('click',e=>{e.stopPropagation();Promise.resolve(action(e)).catch(error);});return b;}
 function iconButton(name,label,action,cls=''){const b=btn('',action,`icon-button ${cls}`);b.append(icon(name));b.setAttribute('aria-label',label);b.title=label;return b;}
+function removeButton(item,cls=''){
+ const b=btn('',async()=>{b.disabled=true;try{await removals.remove(item);}catch{showRemovalError();}finally{if(b.isConnected)b.disabled=false;}},`icon-button remove-reference ${cls}`);
+ b.append(icon('trash'));b.setAttribute('aria-label',item.kind==='website'?'Remove website':'Remove bookmark');return b;
+}
+const removals=createRemovalController({
+ request:async(path,body)=>(await api(path,'POST',body)).json(),notify:showRemovalToast,
+ async onRemoved(item){
+  ++stateRevision;
+  const snapshot={following:state.captures.slice(state.captures.findIndex(i=>i.id===item.id)+1).map(i=>i.id),metadata:state.x_metadata?.[item.post_id],motion:state.motion?.[item.post_id],poster:state.x_images?.[item.post_id]};
+  const card=document.querySelector(`[data-id="${item.id}"]`),cards=[...$('#captures').querySelectorAll('article:not([hidden])')],index=cards.indexOf(card);
+  const next=(cards[index+1]||cards[index-1])?.querySelector('.open-card,.website-image')||$('#search-trigger button');
+  const ownsFocus=card?.contains(document.activeElement);
+  if(dialog.open&&activeId===item.id){
+   returnFocus=next;
+   const closed=new Promise(resolve=>dialog.addEventListener('close',resolve,{once:true}));
+   closeDetail(false);await closed;
+  }
+  state.captures=state.captures.filter(i=>i.id!==item.id);
+  if(dialog.open)pendingRefresh=true;else renderGrid();
+  if(ownsFocus&&!dialog.open)next?.focus({preventScroll:true});
+  return snapshot;
+ },
+ onRestored(item,snapshot){
+  ++stateRevision;
+  state.captures=restoreReference(state.captures,item,snapshot.following);
+  if(item.post_id){
+   if(snapshot.metadata)(state.x_metadata??={})[item.post_id]=snapshot.metadata;
+   if(snapshot.motion)(state.motion??={})[item.post_id]=snapshot.motion;
+   if(snapshot.poster)(state.x_images??={})[item.post_id]=snapshot.poster;
+  }
+  if(dialog.open){pendingRefresh=true;return;}
+  const ownsFocus=document.activeElement?.closest('[data-sonner-toast]');
+  renderGrid();
+  if(ownsFocus)document.querySelector(`[data-id="${item.id}"] .open-card,[data-id="${item.id}"] .website-image`)?.focus({preventScroll:true});
+ }
+});
 document.addEventListener('click',e=>{for(const menu of document.querySelectorAll('.utility-menu[open]'))if(!menu.contains(e.target))menu.open=false;});
 let menuEscapeHandled=false;
 document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;menuEscapeHandled=false;const menus=[...document.querySelectorAll('.utility-menu[open]')];if(menus.length){menuEscapeHandled=true;setTimeout(()=>{menuEscapeHandled=false;},250);e.preventDefault();e.stopImmediatePropagation();const active=menus.find(m=>m.contains(document.activeElement))||menus[0];for(const m of menus)m.open=false;active.querySelector('summary').focus();}},true);
@@ -210,14 +248,15 @@ function renderGrid(){
  for(const player of players)player.sync();
  if(!items.length){grid.className='web-grid';const empty=el('div',null,'empty');empty.append(el('h2',query?'No matching references':selectedFolders.length>0&&section==='x_post'?'No bookmarks in the selected folders':'Your collection starts here'),el('p',query?(section==='x_post'&&selectedFolders.length?'Try another name or keyword, or select All folders.':'Try another name, handle or keyword.'):selectedFolders.length>0&&section==='x_post'?'Folder assignments update from X. Only bookmarks already included in your library appear here.':section==='x_post'?(window.libraryAPI?.cloud?'Import your local collection to bring your saved references here.':'New bookmarks on X will appear after the next sync.'):'Save a website with the browser extension.'));if(query)empty.append(btn('Clear search',clearSearch,'text-action search-reset'));grid.append(empty);emptyGrid=empty;}
 }
-function createCard(item){const cleanupStart=gridCleanups.length;const card=el('article',null,item.kind==='x_post'?'card':'website-card');card.dataset.id=item.id;if(item.kind==='x_post'){const surface=el('div',null,'card-surface');surface.append(mediaPreview(item,'grid'));const open=btn('',e=>openDetail(item.id,open,e.detail>0),'open-card');open.setAttribute('aria-label',`Open reference: ${shortTitle(item)}`);surface.append(open);const count=albumItems(item).length;if(count>1){const badge=el('span',String(count),'album-count');badge.setAttribute('aria-label',`${count} media items`);surface.append(badge);}card.append(surface);resizeObserver.observe(surface);}else{const image=el('a',null,'website-image');image.href=item.url;image.target='_blank';image.rel='noopener noreferrer';image.setAttribute('aria-label',`Visit ${item.title}`);image.append(mediaPreview(item,'grid'));const title=el('h2'),titleLink=el('a',item.title);titleLink.href=item.url;titleLink.target='_blank';titleLink.rel='noopener noreferrer';titleLink.title=item.title;title.append(titleLink);const url=el('a',new URL(item.url).hostname.replace(/^www\./,''),'website-url');url.href=item.url;url.target='_blank';url.rel='noopener noreferrer';card.append(image,title,url);}const cleanups=gridCleanups.splice(cleanupStart);return {node:card,dispose(){resizeObserver.unobserve(card.querySelector('.card-surface')||card);for(const cleanup of cleanups)cleanup();}};}
+function createCard(item){const cleanupStart=gridCleanups.length;const card=el('article',null,item.kind==='x_post'?'card':'website-card');card.dataset.id=item.id;if(item.kind==='x_post'){const surface=el('div',null,'card-surface');surface.append(mediaPreview(item,'grid'));const open=btn('',e=>openDetail(item.id,open,e.detail>0),'open-card');open.setAttribute('aria-label',`Open reference: ${shortTitle(item)}`);surface.append(open);const count=albumItems(item).length;if(count>1){const badge=el('span',String(count),'album-count');badge.setAttribute('aria-label',`${count} media items`);surface.append(badge);}card.append(surface);resizeObserver.observe(surface);}else{const image=el('a',null,'website-image');image.href=item.url;image.target='_blank';image.rel='noopener noreferrer';image.setAttribute('aria-label',`Visit ${item.title}`);image.append(mediaPreview(item,'grid'));const title=el('h2'),titleLink=el('a',item.title);titleLink.href=item.url;titleLink.target='_blank';titleLink.rel='noopener noreferrer';titleLink.title=item.title;title.append(titleLink);const url=el('a',new URL(item.url).hostname.replace(/^www\./,''),'website-url');url.href=item.url;url.target='_blank';url.rel='noopener noreferrer';card.append(image);if(window.libraryAPI?.cloud)card.append(removeButton(item,'website-remove'));card.append(title,url);}const cleanups=gridCleanups.splice(cleanupStart);return {node:card,dispose(){resizeObserver.unobserve(card.querySelector('.card-surface')||card);for(const cleanup of cleanups)cleanup();}};}
 function syncSummary(){if(window.libraryAPI?.cloud){const b=state?.bookmarks;$('#sync-status').textContent=syncNotice(b,state?.cloud_error);$('#sync-status').title=b?.message||'';return;}const c=state?.cloud_sync;const cloudLabel=document.querySelector('#cloud-status');if(cloudLabel)cloudLabel.textContent=c?.needs_sign_in?'Cloud · Sign in again':c?.enabled?(c.pending?`Cloud · ${c.pending} waiting`:'Cloud · Saved'):'Cloud · Connect or resume';const b=state?.bookmarks;if(!b){$('#sync-status').textContent='Saved locally';return;}$('#sync-status').textContent=b.enabled?'X sync on · Checks every 15 minutes':b.phase==='ready'?'X sync paused · Manage in Capture Lab':'Connect X in Capture Lab';$('#sync-status').title=b.message||'';}
-async function refresh(){const next=await(await api('/api/state')).json();if(dialog.open){state.bookmarks=next.bookmarks;state.cloud_sync=next.cloud_sync;syncSummary();pendingRefresh=true;return;}state=next;syncSummary();renderGrid();}
+async function refresh(){const revision=stateRevision,next=await(await api('/api/state')).json();if(revision!==stateRevision)return;if(dialog.open){state.bookmarks=next.bookmarks;state.cloud_sync=next.cloud_sync;syncSummary();pendingRefresh=true;return;}state=next;syncSummary();renderGrid();}
 function renderDetail(){
  detailMotion.settle();for(const c of detailCleanups.splice(0))c();
  const item=state.captures.find(i=>i.id===activeId);if(!item){dialog.close();return;}
  dialog.setAttribute('aria-label',`Bookmark: ${shortTitle(item)}`);
  const source=sourceLink(item,'source-link','View on X');source.replaceChildren(document.createTextNode('View on'),icon('twitter'));$('#detail-footer').replaceChildren(source);
+ $('#remove-detail')?.remove();if(window.libraryAPI?.cloud){const remove=removeButton(item,'detail-remove');remove.id='remove-detail';dialog.querySelector('.detail-layout').append(remove);}
  const media=el('div',null,'detail-media'),album=albumItems(item).length>1;
  $('#detail-stage').classList.toggle('has-album',album);media.append(album?albumPreview(item):mediaPreview(item,'detail'));$('#detail-stage').replaceChildren(media);
 }
@@ -228,7 +267,7 @@ function openDetail(id,trigger,animate=true){
  if(dialog.open)return;
  activeId=id;returnFocus=trigger;
  const source=trigger.closest('.card-surface'),from=source?.getBoundingClientRect();
- document.body.classList.add('detail-open');dialog.showModal();renderDetail();markDetailSource(id);
+ document.body.classList.add('detail-open');dialog.showModal();placeNotifications(dialog);renderDetail();markDetailSource(id);
  for(const p of players)p.sync();detailMotion.open(from,animate);$('#close-detail').focus({preventScroll:true});
 }
 $('#close-detail').addEventListener('click',()=>closeDetail());
@@ -250,10 +289,12 @@ dialog.addEventListener('click',e=>{
 },true);
 
 dialog.addEventListener('close',()=>{detailPointer=null;detailMotion.settle();for(const c of detailCleanups.splice(0))c();$('#detail-stage').replaceChildren();detailSource?.classList.remove('detail-source');detailSource=null;document.body.classList.remove('detail-open');activeId=null;closingDetail=null;for(const p of players)p.sync();returnFocus?.focus({preventScroll:true});if(pendingRefresh){pendingRefresh=false;const id=returnFocus?.closest('[data-id]')?.dataset.id;refresh().then(()=>{document.querySelector(`[data-id="${id}"] .open-card`)?.focus({preventScroll:true});}).catch(error);}});
+mountNotifications();
+dialog.addEventListener('close',()=>placeNotifications());
 mountCollectionMenu($('#collection-menu'),{value:section,themeContainer:$('#theme-control'),searchContainer:$('#search-trigger'),onSearchOpen:openSearch,onValueChange:(value,{animate})=>{const direction=value==='website'?1:-1;section=value;if(state){renderFolders();navigationMotion.update({animate,direction}).catch(error);}}});
 if(!window.libraryAPI?.cloud){const link=el('a','Cloud saves');link.id='cloud-status';link.href='/cloud';document.querySelector('.account-panel').append(link);}
 if(!window.libraryAPI?.cloud){const management=$('#library-management');const showManagement=()=>{management.hidden=location.hash!=='#manage';};addEventListener('hashchange',showManagement);showManagement();}
 window.addEventListener('library-refresh',()=>refresh().catch(error));
 refresh().catch(error);
 // Local reads only; browsing and searching never request paid X data.
-setInterval(async()=>{if(document.hidden||!state)return;try{const next=await(await api('/api/state')).json();const signature=value=>JSON.stringify([value.captures.map(i=>[i.id,i.updated_at]),value.motion,value.x_images,value.x_metadata,value.bookmarks?.folder_snapshot,value.bookmarks?.folder_error,value.bookmarks?.message,value.cloud_error]);if(signature(next)!==signature(state)){if(dialog.open){pendingRefresh=true;return;}state=next;renderGrid();}else{state.bookmarks=next.bookmarks;state.cloud_error=next.cloud_error;state.cloud_sync=next.cloud_sync;}syncSummary();renderFolders();}catch{if(window.libraryAPI?.cloud)$('#folder-status').textContent='Could not refresh your library — check your connection';$('#sync-status').textContent=window.libraryAPI?.cloud?'Could not refresh your library · Check your connection':'Local server unavailable · Your saved cards are still on this Mac';}},15000);
+setInterval(async()=>{if(document.hidden||!state)return;try{const revision=stateRevision,next=await(await api('/api/state')).json();if(revision!==stateRevision)return;const signature=value=>JSON.stringify([value.captures.map(i=>[i.id,i.updated_at]),value.motion,value.x_images,value.x_metadata,value.bookmarks?.folder_snapshot,value.bookmarks?.folder_error,value.bookmarks?.message,value.cloud_error]);if(signature(next)!==signature(state)){if(dialog.open){pendingRefresh=true;return;}state=next;renderGrid();}else{state.bookmarks=next.bookmarks;state.cloud_error=next.cloud_error;state.cloud_sync=next.cloud_sync;}syncSummary();renderFolders();}catch{if(window.libraryAPI?.cloud)$('#folder-status').textContent='Could not refresh your library — check your connection';$('#sync-status').textContent=window.libraryAPI?.cloud?'Could not refresh your library · Check your connection':'Local server unavailable · Your saved cards are still on this Mac';}},15000);

@@ -4,6 +4,7 @@ import {createRoot} from 'react-dom/client';
 import {Tooltip,TooltipTrigger,TooltipContent,TooltipProvider} from './tooltip.jsx';
 import {Kbd} from './kbd.jsx';
 import {headerShortcut} from '../web/shortcuts.js';
+export {mountNotifications,placeNotifications,showRemovalToast,showRemovalError} from './notifications.jsx';
 
 // Collection controls reuse the library's shared button and pill tokens.
 const HeaderButton=forwardRef(function HeaderButton({className='',...props},ref){
