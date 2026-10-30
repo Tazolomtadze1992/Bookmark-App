@@ -323,7 +323,8 @@ html{scrollbar-gutter:stable}
 /* Search uses saved metadata while the media cards stay visually unchanged. */
 :root{--search-clear:oklch(0.6 0 0);--search-clear-hover:oklch(0.4 0 0)}
 :root[data-theme="dark"]{--search-clear-hover:oklch(0.8 0 0)}
-.library-tools{order:2;display:flex;align-items:center;gap:4px;margin-left:auto;flex:none}
+/* The two 4px surface insets create the visible 8px gap. */
+.library-tools{order:2;display:flex;align-items:center;gap:0;margin-left:auto;flex:none}
 .search-control{--search-hit-size:40px;--search-width:140px;position:relative;isolation:isolate;flex:none;width:var(--search-hit-size);height:var(--search-hit-size)}
 #search-trigger{position:relative;z-index:1;height:100%;pointer-events:none}
 .search-control .search-toggle{width:var(--search-hit-size);height:var(--search-hit-size);padding:0;border-radius:50%;pointer-events:auto}
