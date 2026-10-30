@@ -327,7 +327,7 @@ html{scrollbar-gutter:stable}
 .library-search{position:relative;isolation:isolate;order:0;display:flex;align-items:center;gap:6px;width:140px;min-width:0;height:40px;margin:0;padding:0 8px 0 12px;border-radius:999px;background:transparent;color:var(--ink);flex:none}
 .library-search::before{content:'';position:absolute;inset:4px 0;border-radius:inherit;z-index:-1;background:var(--surface);box-shadow:var(--shadow-border);pointer-events:none}
 .library-search>img{width:16px;height:16px;flex:none;filter:var(--icon-filter);opacity:.7}
-.library-search input{width:100%;min-width:0;height:100%;margin:0;padding:0;border:0;border-radius:inherit;outline:none;background:transparent;color:inherit;font:inherit;font-size:13px;line-height:1.5;appearance:none}
+.library-search input{width:100%;min-width:0;height:100%;margin:0;padding:0;border:0;border-radius:inherit;outline:none;background:transparent;color:inherit;font:inherit;font-size:13px;font-weight:500;line-height:1.5;appearance:none}
 .library-search input::-webkit-search-cancel-button{appearance:none}
 .library-search input::placeholder{color:var(--muted);opacity:1}
 .library-search:focus-within::before{outline:2px solid var(--focus);outline-offset:0}
