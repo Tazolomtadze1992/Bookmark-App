@@ -191,7 +191,10 @@ clearSearchButton.addEventListener('click',e=>{if(searchInput.value)clearSearch(
 searchForm.addEventListener('keydown',e=>{if(e.key==='Escape'&&!e.isComposing){e.preventDefault();if(searchInput.value)clearSearch();else setSearchOpen(false,{restoreFocus:true});}});
 document.addEventListener('keydown',e=>{if(searchControl.hidden||!searchShortcut(e,{modalOpen:dialog.open}))return;e.preventDefault();openSearch({animate:false});});
 document.addEventListener('pointerdown',e=>{if(searchOpen&&!searchInput.value&&!searchControl.contains(e.target))setSearchOpen(false,{animate:e.pointerType!=='touch'});});
-searchForm.addEventListener('focusout',()=>{queueMicrotask(()=>{if(searchOpen&&!searchInput.value&&!searchControl.contains(document.activeElement))setSearchOpen(false);});});
+searchForm.addEventListener('focusout',event=>{
+ if(searchControl.contains(event.relatedTarget))return;
+ requestAnimationFrame(()=>{if(searchOpen&&!searchInput.value&&!searchControl.contains(document.activeElement))setSearchOpen(false);});
+});
 searchForm.addEventListener('pointerdown',e=>{if(e.target===searchForm)searchInput.focus({preventScroll:true});});
 function filteredItems(){return state.captures.filter(i=>!i.fixture&&i.kind===section&&(section!=='x_post'||inFolder(i,selectedFolders,state.bookmarks?.folder_snapshot))&&matchesReference(i,metadata(i),query));}
 function renderGrid(){
