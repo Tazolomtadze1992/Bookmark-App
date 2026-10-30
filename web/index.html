@@ -5,14 +5,17 @@
 <nav aria-label="Library sections"><div id="collection-menu"></div></nav>
 <div id="folder-bar" class="folder-bar" hidden><p class="sr-only" id="folder-help">Select one or more folders. Shows bookmarks in any selected folder. All clears the selection.</p><div id="folder-filters" role="group" aria-label="Filter X bookmarks by folder" aria-describedby="folder-help"></div></div>
 <div class="library-tools">
-<form id="library-search" class="library-search" role="search" hidden>
+<div id="search-control" class="search-control" data-open="false" data-motion="instant" hidden>
+<div id="search-trigger"></div>
+<form id="library-search" class="library-search" role="search" aria-hidden="true" inert>
+<div class="search-entry">
 <label for="search-input" class="sr-only">Search your library</label>
-<img src="/icons/magnifying-glass.svg" alt="">
 <input id="search-input" type="search" placeholder="Search" autocomplete="off" spellcheck="false" aria-describedby="search-help" aria-controls="captures" aria-keyshortcuts="Meta+K Control+K /">
-<span id="search-shortcut" class="search-kbd" aria-hidden="true"><kbd class="nav-kbd" data-slot="kbd"><span id="search-shortcut-modifier" class="search-command"></span></kbd><kbd class="nav-kbd" data-slot="kbd">K</kbd></span>
-<button id="clear-search" type="button" aria-label="Clear search" hidden><span class="search-clear-icon" aria-hidden="true"></span></button>
+<button id="clear-search" type="button" aria-label="Close search"><span class="search-clear-icon" aria-hidden="true"></span></button>
 <span id="search-help" class="sr-only">Search saved text, author names, handles and links in the current collection and selected folders.</span>
+</div>
 </form>
+</div>
 <div id="theme-control" class="theme-control"><button class="header-button theme-icon" type="button" data-theme-choice="dark" data-theme-toggle aria-label="Switch to dark mode" title="Switch to dark mode"><span class="theme-viewport" aria-hidden="true"><span class="theme-orbit"><span class="theme-body theme-sun"><img src="/icons/sun.svg" alt=""></span><span class="theme-body theme-moon"><img src="/icons/moon.svg" alt=""></span></span></span></button></div>
 </div>
 </header>

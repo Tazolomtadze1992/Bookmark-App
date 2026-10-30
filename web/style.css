@@ -324,27 +324,47 @@ html{scrollbar-gutter:stable}
 :root{--search-clear:oklch(0.6 0 0);--search-clear-hover:oklch(0.4 0 0)}
 :root[data-theme="dark"]{--search-clear-hover:oklch(0.8 0 0)}
 .library-tools{order:2;display:flex;align-items:center;gap:8px;margin-left:auto;flex:none}
-.library-search{position:relative;isolation:isolate;order:0;display:flex;align-items:center;gap:6px;width:140px;min-width:0;height:40px;margin:0;padding:0 8px 0 12px;border-radius:999px;background:transparent;color:var(--ink);flex:none}
-.library-search::before{content:'';position:absolute;inset:4px 0;border-radius:inherit;z-index:-1;background:var(--surface);box-shadow:var(--shadow-border);pointer-events:none}
-.library-search>img{width:16px;height:16px;flex:none;filter:var(--icon-filter);opacity:.7}
-.library-search input{width:100%;min-width:0;height:100%;margin:0;padding:0;border:0;border-radius:inherit;outline:none;background:transparent;color:inherit;font:inherit;font-size:13px;font-weight:500;line-height:1.5;appearance:none}
+.search-control{--search-hit-size:40px;--search-width:140px;position:relative;isolation:isolate;flex:none;width:var(--search-hit-size);height:var(--search-hit-size)}
+#search-trigger{position:relative;z-index:1;height:100%;pointer-events:none}
+.search-control .search-toggle{width:var(--search-hit-size);height:var(--search-hit-size);padding:0;border-radius:50%;pointer-events:auto}
+.search-control .search-toggle::before{background:transparent}
+.search-toggle img{display:block;width:16px;height:16px;filter:var(--icon-filter);pointer-events:none;transform:translateX(0)}
+.library-search{position:absolute;isolation:isolate;z-index:0;top:0;right:0;width:var(--search-width);height:var(--search-hit-size);margin:0;padding:0;border-radius:999px;background:transparent;color:var(--ink);pointer-events:none}
+.library-search::before{content:'';position:absolute;inset:4px 0;z-index:-1;border-radius:999px;background:var(--category-bg);clip-path:inset(0 4px 0 calc(100% - 36px) round 999px);pointer-events:none}
+.search-entry{display:flex;align-items:center;width:100%;height:100%;padding-left:var(--search-hit-size);opacity:0;clip-path:inset(0 4px 0 calc(100% - 36px) round 999px);pointer-events:none}
+.library-search input{width:100%;min-width:0;height:100%;margin:0;padding:0;border:0;outline:none;background:transparent;color:inherit;font:inherit;font-size:13px;font-weight:500;line-height:1.5;appearance:none}
 .library-search input::-webkit-search-cancel-button{appearance:none}
 .library-search input::placeholder{color:var(--muted);opacity:1}
-.library-search:focus-within::before{outline:2px solid var(--focus);outline-offset:0}
-.library-search button{position:relative;isolation:isolate;display:grid;place-items:center;flex:none;width:40px;height:40px;margin-right:-8px;padding:0;border-radius:50%;color:var(--search-clear);background:transparent}
+.library-search:focus-within::before{box-shadow:inset 0 0 0 2px var(--focus)}
+.library-search button{position:relative;isolation:isolate;display:grid;place-items:center;flex:none;width:var(--search-hit-size);height:var(--search-hit-size);padding:0;border-radius:50%;color:var(--search-clear);background:transparent}
 .library-search button::before{content:'';position:absolute;left:50%;top:50%;width:24px;height:24px;transform:translate(-50%,-50%);border-radius:50%;z-index:-1;pointer-events:none;background:transparent}
 .search-clear-icon{width:16px;height:16px;background:currentColor;mask:url('/icons/x.svg') center/contain no-repeat}
 .library-search button:focus-visible{outline:none}
 .library-search button:focus-visible::before{outline:2px solid var(--focus);outline-offset:0}
-.search-kbd{display:inline-flex;align-items:center;flex:none;gap:4px;white-space:nowrap}
 .search-command{display:inline-block;width:12px;height:12px;flex:none;background:currentColor;mask:url('/icons/command.svg') center/contain no-repeat}
+.search-control[data-open="true"] .library-search,.search-control[data-open="true"] .search-entry{pointer-events:auto}
+.search-control[data-open="true"] .library-search::before{clip-path:inset(0 round 999px)}
+.search-control[data-open="true"] .search-entry{opacity:1;clip-path:inset(0 round 999px)}
+.search-control[data-open="true"] .search-toggle{pointer-events:none}
+.search-control[data-open="true"] .search-toggle img{transform:translateX(calc(var(--search-hit-size) - var(--search-width)))}
+/* Reveal a fixed-size surface and translate the icon; no layout or text scaling. */
+.search-control[data-motion="animated"] .library-search::before{transition:clip-path 220ms cubic-bezier(.32,.72,0,1)}
+.search-control[data-motion="animated"] .search-toggle img{transition:transform 220ms cubic-bezier(.32,.72,0,1)}
+.search-control[data-motion="animated"] .search-entry{transition:clip-path 220ms cubic-bezier(.32,.72,0,1),opacity 140ms ease}
+.search-control[data-motion="animated"][data-open="false"] .library-search::before,.search-control[data-motion="animated"][data-open="false"] .search-toggle img{transition-duration:160ms}
+.search-control[data-motion="animated"][data-open="false"] .search-entry{transition-duration:160ms,80ms}
 .topbar .theme-control{order:1;margin-left:0}
 .search-results{margin:0 0 18px;color:var(--muted);font-size:13px;line-height:1.5;font-variant-numeric:tabular-nums}
 .search-reset{margin:16px auto 0;min-height:44px}
-@media(hover:hover) and (pointer:fine){.library-search button:hover{color:var(--search-clear-hover)}}
+@media(hover:hover) and (pointer:fine){.library-search button:hover{color:var(--search-clear-hover)}.search-control[data-open="false"]:hover .library-search::before{background:var(--category-hover)}}
 @media(max-width:1000px){.library-tools{order:1}.topbar .folder-bar{order:3}}
-@media(max-width:600px){.topbar{gap:8px}.topbar .folder-bar{order:3}.library-search input{font-size:16px}.search-kbd{display:none}}
-@media(pointer:coarse){.library-search,.library-search button{height:44px}.library-search::before{inset:6px 0}.library-search button{width:44px}.library-search input{font-size:16px}.search-kbd{display:none}}
+@media(max-width:600px){.topbar{gap:8px}.topbar .folder-bar{order:3}.library-search input{font-size:16px}}
+@media(pointer:coarse){.search-control{--search-hit-size:44px}.library-search::before{inset:6px 0;clip-path:inset(0 6px 0 calc(100% - 38px) round 999px)}.search-entry{clip-path:inset(0 6px 0 calc(100% - 38px) round 999px)}.library-search input{font-size:16px}}
+
+@media(prefers-reduced-motion:reduce){
+ .search-control[data-motion="animated"] .library-search::before,.search-control[data-motion="animated"] .search-toggle img{transition:none}
+ .search-control[data-motion="animated"] .search-entry{transition:opacity 100ms ease}
+}
 
 /* Theme swaps are atomic; hover fades resume after the new colors paint.
    This token only controls color/surface transitions, never icon or viewer motion. */

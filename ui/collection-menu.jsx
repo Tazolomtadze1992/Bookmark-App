@@ -42,7 +42,27 @@ function ThemeChoice(){
  </Tooltip>;
 }
 
-function CollectionMenu({initialValue,onValueChange,themeContainer}){
+function SearchChoice({onSearchOpen}){
+ const [expanded,setExpanded]=useState(false);
+ const mac=/Mac|iPhone|iPad/.test(navigator.platform);
+ useEffect(()=>{
+  const onToggle=event=>setExpanded(event.detail.open);
+  window.addEventListener('library-search-toggle',onToggle);
+  return ()=>window.removeEventListener('library-search-toggle',onToggle);
+ },[]);
+ return <Tooltip open={expanded?false:undefined}>
+  <TooltipTrigger asChild>
+   <HeaderButton className="search-toggle" aria-label="Search" aria-controls="library-search" aria-expanded={expanded}
+    aria-keyshortcuts="Meta+K Control+K /" aria-hidden={expanded||undefined} tabIndex={expanded?-1:0}
+    onClick={event=>onSearchOpen({animate:event.detail>0})}>
+    <img src="/icons/magnifying-glass.svg" alt=""/>
+   </HeaderButton>
+  </TooltipTrigger>
+  <TooltipContent side="bottom"><span>Search</span><Kbd>{mac?<span className="search-command"/>:'Ctrl'}</Kbd><Kbd>K</Kbd></TooltipContent>
+ </Tooltip>;
+}
+
+function CollectionMenu({initialValue,onValueChange,themeContainer,searchContainer,onSearchOpen}){
  const [value,setValue]=useState(initialValue);
  const [animated,setAnimated]=useState(false);
  const change=(next,event)=>{const animate=event.detail>0;setAnimated(animate);setValue(next);onValueChange(next,{animate});};
@@ -60,10 +80,11 @@ function CollectionMenu({initialValue,onValueChange,themeContainer}){
  return <TooltipProvider delayDuration={350} skipDelayDuration={700}><div className="collection-switcher" role="group" aria-label="Library collection" data-motion={animated?'animated':'instant'}>
   <span className="collection-selection" aria-hidden="true" style={{transform:`translateX(${collections.findIndex(([id])=>id===value)*40}px)`}}/>
   {collections.map(([id,label,icon])=><CollectionChoice key={id} id={id} label={label} icon={icon} selected={value===id} onChange={change}/>)}
- </div>{createPortal(<ThemeChoice/>,themeContainer)}</TooltipProvider>;
+ </div>{createPortal(<SearchChoice onSearchOpen={onSearchOpen}/>,searchContainer)}{createPortal(<ThemeChoice/>,themeContainer)}</TooltipProvider>;
 }
 
-export function mountCollectionMenu(container,{value,onValueChange,themeContainer}){
+export function mountCollectionMenu(container,{value,onValueChange,themeContainer,searchContainer,onSearchOpen}){
  themeContainer.replaceChildren();
- createRoot(container).render(<CollectionMenu initialValue={value} onValueChange={onValueChange} themeContainer={themeContainer}/>);
+ searchContainer.replaceChildren();
+ createRoot(container).render(<CollectionMenu initialValue={value} onValueChange={onValueChange} themeContainer={themeContainer} searchContainer={searchContainer} onSearchOpen={onSearchOpen}/>);
 }

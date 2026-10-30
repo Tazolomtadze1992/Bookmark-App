@@ -170,24 +170,33 @@ function renderFolders(){
  note.textContent=window.libraryAPI?.cloud?syncNotice(state.bookmarks,state.cloud_error):state.cloud_error?'Folder status unavailable':allowancePaused?'X sync paused — spending limit reached':state.bookmarks?.folder_error?'Folder sync needs attention':!snapshot?.synced_at?'Folders haven’t synced yet':folders.length?'':'Create folders on X to organize your bookmarks.';
  note.title=window.libraryAPI?.cloud?(state.bookmarks?.message||state.cloud_error||'Automatic X checks')+' · Manage connections at #manage.':allowancePaused?'New bookmarks and folder updates are paused by the app’s safety allowance. This estimate is not your actual X bill. See connections at #manage.':state.bookmarks?.folder_error||'Folder names and assignments come from X. Existing old-bookmark exclusions still apply.';
 }
-const searchForm=$('#library-search'),searchInput=$('#search-input'),clearSearchButton=$('#clear-search'),searchResults=$('#search-results');
-const searchShortcutHint=$('#search-shortcut');
-const macShortcut=/Mac|iPhone|iPad/.test(navigator.platform),shortcutModifier=$('#search-shortcut-modifier');
-shortcutModifier.classList.toggle('search-command',macShortcut);
-shortcutModifier.textContent=macShortcut?'':'Ctrl';
-searchInput.title=`Search (${macShortcut?'⌘ K':'Ctrl K'})`;
-function updateSearch(){query=searchInput.value.trim();clearSearchButton.hidden=!searchInput.value;searchShortcutHint.hidden=!!searchInput.value;renderGrid();}
+const searchControl=$('#search-control'),searchForm=$('#library-search'),searchInput=$('#search-input'),clearSearchButton=$('#clear-search'),searchResults=$('#search-results');
+let searchOpen=false;
+function setSearchOpen(open,{animate=false,restoreFocus=false}={}){
+ searchOpen=open;
+ searchControl.dataset.motion=animate?'animated':'instant';
+ searchControl.dataset.open=String(open);
+ searchForm.inert=!open;searchForm.setAttribute('aria-hidden',String(!open));
+ window.dispatchEvent(new CustomEvent('library-search-toggle',{detail:{open}}));
+ if(open){searchInput.focus({preventScroll:true});searchInput.select();}
+ else if(restoreFocus)requestAnimationFrame(()=>{if(!searchOpen)$('#search-trigger button')?.focus({preventScroll:true});});
+}
+function openSearch(options){setSearchOpen(true,options);}
+function updateSearch(){query=searchInput.value.trim();clearSearchButton.setAttribute('aria-label',searchInput.value?'Clear search':'Close search');renderGrid();}
 function clearSearch(){searchInput.value='';updateSearch();searchInput.focus();}
 searchForm.addEventListener('submit',e=>e.preventDefault());
 searchInput.addEventListener('input',e=>{if(!e.isComposing)updateSearch();});
 searchInput.addEventListener('compositionend',updateSearch);
-clearSearchButton.addEventListener('click',clearSearch);
-searchInput.addEventListener('keydown',e=>{if(e.key==='Escape'&&!e.isComposing){e.preventDefault();if(searchInput.value)clearSearch();else searchInput.blur();}});
-document.addEventListener('keydown',e=>{if(searchForm.hidden||!searchShortcut(e,{modalOpen:dialog.open}))return;e.preventDefault();searchInput.focus();searchInput.select();});
+clearSearchButton.addEventListener('click',e=>{if(searchInput.value)clearSearch();else setSearchOpen(false,{animate:e.detail>0,restoreFocus:true});});
+searchForm.addEventListener('keydown',e=>{if(e.key==='Escape'&&!e.isComposing){e.preventDefault();if(searchInput.value)clearSearch();else setSearchOpen(false,{restoreFocus:true});}});
+document.addEventListener('keydown',e=>{if(searchControl.hidden||!searchShortcut(e,{modalOpen:dialog.open}))return;e.preventDefault();openSearch({animate:false});});
+document.addEventListener('pointerdown',e=>{if(searchOpen&&!searchInput.value&&!searchControl.contains(e.target))setSearchOpen(false,{animate:e.pointerType!=='touch'});});
+searchForm.addEventListener('focusout',()=>{queueMicrotask(()=>{if(searchOpen&&!searchInput.value&&!searchControl.contains(document.activeElement))setSearchOpen(false);});});
+searchForm.addEventListener('pointerdown',e=>{if(e.target===searchForm)searchInput.focus({preventScroll:true});});
 function filteredItems(){return state.captures.filter(i=>!i.fixture&&i.kind===section&&(section!=='x_post'||inFolder(i,selectedFolders,state.bookmarks?.folder_snapshot))&&matchesReference(i,metadata(i),query));}
 function renderGrid(){
  if(!state)return;renderFolders();const grid=$('#captures'),items=filteredItems();
- searchForm.hidden=false;
+ searchControl.hidden=false;
  searchResults.hidden=!query;
  const resultLabel=`${items.length} ${section==='x_post'?(items.length===1?'bookmark':'bookmarks'):(items.length===1?'website':'websites')}${section==='x_post'&&selectedFolders.length?' in selected folders':''}`;
  if(searchResults.textContent!==resultLabel)searchResults.textContent=resultLabel;
@@ -238,7 +247,7 @@ dialog.addEventListener('click',e=>{
 },true);
 
 dialog.addEventListener('close',()=>{detailPointer=null;detailMotion.settle();for(const c of detailCleanups.splice(0))c();$('#detail-stage').replaceChildren();detailSource?.classList.remove('detail-source');detailSource=null;document.body.classList.remove('detail-open');activeId=null;closingDetail=null;for(const p of players)p.sync();returnFocus?.focus({preventScroll:true});if(pendingRefresh){pendingRefresh=false;const id=returnFocus?.closest('[data-id]')?.dataset.id;refresh().then(()=>{document.querySelector(`[data-id="${id}"] .open-card`)?.focus({preventScroll:true});}).catch(error);}});
-mountCollectionMenu($('#collection-menu'),{value:section,themeContainer:$('#theme-control'),onValueChange:(value,{animate})=>{const direction=value==='website'?1:-1;section=value;if(state){renderFolders();navigationMotion.update({animate,direction}).catch(error);}}});
+mountCollectionMenu($('#collection-menu'),{value:section,themeContainer:$('#theme-control'),searchContainer:$('#search-trigger'),onSearchOpen:openSearch,onValueChange:(value,{animate})=>{const direction=value==='website'?1:-1;section=value;if(state){renderFolders();navigationMotion.update({animate,direction}).catch(error);}}});
 if(!window.libraryAPI?.cloud){const link=el('a','Cloud saves');link.id='cloud-status';link.href='/cloud';document.querySelector('.account-panel').append(link);}
 if(!window.libraryAPI?.cloud){const management=$('#library-management');const showManagement=()=>{management.hidden=location.hash!=='#manage';};addEventListener('hashchange',showManagement);showManagement();}
 window.addEventListener('library-refresh',()=>refresh().catch(error));
