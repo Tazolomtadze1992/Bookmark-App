@@ -172,8 +172,10 @@ function renderFolders(){
 }
 const searchForm=$('#library-search'),searchInput=$('#search-input'),clearSearchButton=$('#clear-search'),searchResults=$('#search-results');
 const searchShortcutHint=$('#search-shortcut');
-searchShortcutHint.textContent=/Mac|iPhone|iPad/.test(navigator.platform)?'⌘ K':'Ctrl K';
-searchInput.title=`Search (${searchShortcutHint.textContent})`;
+const macShortcut=/Mac|iPhone|iPad/.test(navigator.platform),shortcutModifier=$('#search-shortcut-modifier');
+shortcutModifier.classList.toggle('search-command',macShortcut);
+shortcutModifier.textContent=macShortcut?'':'Ctrl';
+searchInput.title=`Search (${macShortcut?'⌘ K':'Ctrl K'})`;
 function updateSearch(){query=searchInput.value.trim();clearSearchButton.hidden=!searchInput.value;searchShortcutHint.hidden=!!searchInput.value;renderGrid();}
 function clearSearch(){searchInput.value='';updateSearch();searchInput.focus();}
 searchForm.addEventListener('submit',e=>e.preventDefault());

@@ -334,7 +334,8 @@ html{scrollbar-gutter:stable}
 .search-clear-icon{width:16px;height:16px;background:currentColor;mask:url('/icons/x.svg') center/contain no-repeat}
 .library-search button:focus-visible{outline:none}
 .library-search button:focus-visible::before{outline:2px solid var(--focus);outline-offset:0}
-.search-kbd{flex:none;white-space:nowrap;color:var(--search-shortcut-ink)}
+.search-kbd{flex:none;gap:3px;white-space:nowrap;color:var(--search-shortcut-ink)}
+.search-command{display:inline-block;width:12px;height:12px;flex:none;background:currentColor;mask:url('/icons/command.svg') center/contain no-repeat}
 .topbar .theme-control{order:1;margin-left:0}
 .search-results{margin:0 0 18px;color:var(--muted);font-size:13px;line-height:1.5;font-variant-numeric:tabular-nums}
 .search-reset{margin:16px auto 0;min-height:44px}
