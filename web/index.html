@@ -4,15 +4,17 @@
 <header class="topbar">
 <nav aria-label="Library sections"><div id="collection-menu"></div></nav>
 <div id="folder-bar" class="folder-bar" hidden><p class="sr-only" id="folder-help">Select one or more folders. Shows bookmarks in any selected folder. All clears the selection.</p><div id="folder-filters" role="group" aria-label="Filter X bookmarks by folder" aria-describedby="folder-help"></div></div>
-<div id="theme-control" class="theme-control"><button class="header-button theme-icon" type="button" data-theme-choice="dark" data-theme-toggle aria-label="Switch to dark mode" title="Switch to dark mode"><span class="theme-viewport" aria-hidden="true"><span class="theme-orbit"><span class="theme-body theme-sun"><img src="/icons/sun.svg" alt=""></span><span class="theme-body theme-moon"><img src="/icons/moon.svg" alt=""></span></span></span></button></div>
+<div class="library-tools">
 <form id="library-search" class="library-search" role="search" hidden>
 <label for="search-input" class="sr-only">Search your library</label>
 <img src="/icons/magnifying-glass.svg" alt="">
 <input id="search-input" type="search" placeholder="Search…" autocomplete="off" spellcheck="false" aria-describedby="search-help" aria-controls="captures" aria-keyshortcuts="Meta+K Control+K /">
-<kbd id="search-shortcut" class="search-kbd" aria-hidden="true">⌘ K</kbd>
+<kbd id="search-shortcut" class="nav-kbd search-kbd" data-slot="kbd" aria-hidden="true">⌘ K</kbd>
 <button id="clear-search" type="button" aria-label="Clear search" hidden><img src="/icons/x.svg" alt=""></button>
 <span id="search-help" class="sr-only">Search saved text, author names, handles and links in the current collection and selected folders.</span>
 </form>
+<div id="theme-control" class="theme-control"><button class="header-button theme-icon" type="button" data-theme-choice="dark" data-theme-toggle aria-label="Switch to dark mode" title="Switch to dark mode"><span class="theme-viewport" aria-hidden="true"><span class="theme-orbit"><span class="theme-body theme-sun"><img src="/icons/sun.svg" alt=""></span><span class="theme-body theme-moon"><img src="/icons/moon.svg" alt=""></span></span></span></button></div>
+</div>
 </header>
 <section id="library-management" class="library-management" hidden aria-label="Library connections and settings"><a href="#" class="menu-item">Back to library</a><div class="account-panel"><p id="privacy-status">Private · Saved on this Mac</p><p id="sync-status">Loading your library…</p><div id="connection-tools"></div><a class="lab-link menu-item" href="/lab">Capture Lab</a></div></section>
 <main>
