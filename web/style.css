@@ -348,9 +348,9 @@ html{scrollbar-gutter:stable}
 .search-control[data-open="true"] .search-toggle{pointer-events:none}
 .search-control[data-open="true"] .search-toggle img{transform:translateX(calc(var(--search-hit-size) - var(--search-width)))}
 /* Only this tiny absolute field resizes; header layout and text scale stay fixed. */
-.search-control[data-motion="animated"] .library-search{transition:width 200ms cubic-bezier(.25,.46,.45,.94)}
-.search-control[data-motion="animated"] .search-toggle img{transition:transform 200ms cubic-bezier(.25,.46,.45,.94)}
-.search-control[data-motion="animated"] .search-entry{transition:opacity 200ms cubic-bezier(.25,.46,.45,.94)}
+.search-control[data-motion="animated"] .library-search{transition:width 170ms cubic-bezier(.25,.46,.45,.94)}
+.search-control[data-motion="animated"] .search-toggle img{transition:transform 170ms cubic-bezier(.25,.46,.45,.94)}
+.search-control[data-motion="animated"] .search-entry{transition:opacity 170ms cubic-bezier(.25,.46,.45,.94)}
 .search-control[data-motion="animated"][data-open="false"] .library-search,.search-control[data-motion="animated"][data-open="false"] .search-toggle img,.search-control[data-motion="animated"][data-open="false"] .search-entry{transition-duration:150ms}
 .topbar .theme-control{order:1;margin-left:0}
 .search-results{margin:0 0 18px;color:var(--muted);font-size:13px;line-height:1.5;font-variant-numeric:tabular-nums}
