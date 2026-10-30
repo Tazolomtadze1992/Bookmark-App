@@ -320,7 +320,7 @@ html{scrollbar-gutter:stable}
 
 /* Search uses saved metadata while the media cards stay visually unchanged. */
 .library-tools{order:2;display:flex;align-items:center;gap:8px;margin-left:auto;flex:none}
-.library-search{position:relative;isolation:isolate;order:0;display:flex;align-items:center;gap:8px;width:180px;min-width:0;height:40px;margin:0;padding:0 8px 0 12px;border-radius:999px;background:transparent;color:var(--ink);flex:none}
+.library-search{position:relative;isolation:isolate;order:0;display:flex;align-items:center;gap:8px;width:140px;min-width:0;height:40px;margin:0;padding:0 8px 0 12px;border-radius:999px;background:transparent;color:var(--ink);flex:none}
 .library-search::before{content:'';position:absolute;inset:4px 0;border-radius:inherit;z-index:-1;background:var(--surface);box-shadow:var(--shadow-border);pointer-events:none}
 .library-search>img{width:16px;height:16px;flex:none;filter:var(--icon-filter);opacity:.7}
 .library-search input{width:100%;min-width:0;height:100%;margin:0;padding:0;border:0;border-radius:inherit;outline:none;background:transparent;color:inherit;font:inherit;font-size:13px;line-height:1.5;appearance:none}
@@ -336,8 +336,7 @@ html{scrollbar-gutter:stable}
 .search-reset{margin:16px auto 0;min-height:44px}
 @media(hover:hover) and (pointer:fine){.library-search button:hover{background:var(--soft)}}
 @media(max-width:1000px){.library-tools{order:1}.topbar .folder-bar{order:3}}
-@media(max-width:600px){.topbar{gap:8px}.library-search{width:160px}.topbar .folder-bar{order:3}.library-search input{font-size:16px}.search-kbd{display:none}}
-@media(max-width:360px){.library-search{width:136px}}
+@media(max-width:600px){.topbar{gap:8px}.topbar .folder-bar{order:3}.library-search input{font-size:16px}.search-kbd{display:none}}
 @media(pointer:coarse){.library-search,.library-search button{height:44px}.library-search::before{inset:6px 0}.library-search button{width:44px}.library-search input{font-size:16px}.search-kbd{display:none}}
 
 /* Theme swaps are atomic; hover fades resume after the new colors paint.
