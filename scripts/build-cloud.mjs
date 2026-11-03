@@ -18,5 +18,5 @@ html=html.replace('<main>','<main hidden>');
 const policy="default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; connect-src 'self' "+url+"; img-src 'self' blob: data: https://pbs.twimg.com; media-src https://video.twimg.com; object-src 'none'; base-uri 'none'; form-action 'self'";
 html=html.replace('<head>','<head><meta http-equiv="Content-Security-Policy" content="'+policy+'">');
 await writeFile('dist/index.html',html);
-await build({entryPoints:['cloud/client.js'],bundle:true,external:['/app.js'],format:'esm',outfile:'dist/cloud.js',minify:true,define:{SUPABASE_URL:JSON.stringify(url),SUPABASE_KEY:JSON.stringify(key)}});
+await build({entryPoints:['cloud/client.js'],bundle:true,external:['/app.js','/loading.js'],format:'esm',outfile:'dist/cloud.js',minify:true,define:{SUPABASE_URL:JSON.stringify(url),SUPABASE_KEY:JSON.stringify(key)}});
 console.log('Built private cloud library. Local server, pairing keys and capture data are not deployed.');

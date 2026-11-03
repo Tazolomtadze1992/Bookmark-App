@@ -1,9 +1,13 @@
 import {syncNotice} from '../web/sync-status.js';
 import {createClient} from '@supabase/supabase-js';
 import {readLibraryState} from './library-state.js';
+import {showLoadingGrid} from '/loading.js';
 const db=createClient(SUPABASE_URL,SUPABASE_KEY);
 let user;
 const main=document.querySelector('main');
+// This shell contains no saved data. Private reads still wait for getUser below.
+main.hidden=false;showLoadingGrid(document.querySelector('#captures'),'x_post');
+document.querySelector('#loading-status').textContent='Loading your library';
 const labLink=document.querySelector('.lab-link');
 const personalLabel=document.querySelector('#privacy-status');
 const notice=document.createElement('p');notice.className='status';notice.setAttribute('role','status');
