@@ -5,7 +5,7 @@ import {mountCollectionMenu} from './collection-menu.js';
 import {createNavigationMotion} from './navigation-motion.js';
 import {createGridCache} from './grid-cache.js';
 import {matchesReference,searchShortcut} from './search.js';
-import {skeletonBox,watchPreview,acquirePreview,syncPreviews,showLoadingGrid,clearLoadingGrid,measureLoadingGrid,beginHeaderLoading,revealHeaderControls,showFolderLoading,clearFolderLoading} from './loading.js';
+import {skeletonBox,watchPreview,acquirePreview,syncPreviews,showLoadingGrid,clearLoadingGrid,measureLoadingGrid,beginHeaderLoading,revealHeaderControls,showFolderLoading,clearFolderLoading,revealMedia,settleLoadingReveal} from './loading.js';
 const $ = s => document.querySelector(s);
 const token = $('meta[name="local-token"]').content;
 let state=null, section='x_post', query='', activeId=null,  returnFocus=null, pendingRefresh=false;
@@ -73,7 +73,7 @@ const wrap=el('div',null,'motion-wrap'),video=el('video',null,'motion-video');vi
 async function sync(){if(disposed)return;if(!visible||wrap.closest('[hidden]')||document.hidden||(dialog.open&&scope==='grid')||reduced.matches){video.pause();return;}if(blocked)return;if(!video.src)video.src=media.url;try{await video.play();if(!disposed)note.textContent='';}catch(e){if(disposed||e.name==='AbortError')return;blocked=true;note.classList.remove('reduced-note');note.textContent=e.name==='NotAllowedError'?'Autoplay unavailable. Open the original post to watch.':'Preview unavailable. You can still open the original post.';controls.classList.add('needs-action');}}
 wrap.style.setProperty('--media-ratio',media.width>0&&media.height>0?media.width/media.height:1);wrap.append(video,controls,note);
 const bone=skeletonBox();wrap.classList.add('media-loading');wrap.append(bone);
-const show=()=>{wrap.classList.remove('media-loading');bone.remove();};
+const show=()=>revealMedia(wrap);
 video.addEventListener('loadeddata',show,{once:true});
 video.addEventListener('error',()=>{show();blocked=true;note.classList.remove('reduced-note');note.textContent='Preview unavailable. You can still open the original post.';controls.classList.add('needs-action');});
 const poster=mediaPoster===undefined?state.x_images?.[item.post_id]:mediaPoster;
@@ -94,12 +94,12 @@ function mediaPreview(item,scope){
   const wrap=scope==='grid'?el('div',null,'image-preview media-loading'):null;
   if(wrap){wrap.style.aspectRatio=item.kind==='website'?'1.88':String(img.width&&img.height?img.width/img.height:1);wrap.append(img,skeletonBox());}
   const fallback=()=>{
-   if(wrap){wrap.classList.remove('media-loading');wrap.removeAttribute('aria-busy');wrap.replaceChildren(el('p','Preview unavailable','preview-fallback'));}
+   if(wrap){wrap.removeAttribute('aria-busy');img.remove();if(!wrap.querySelector('.preview-fallback'))wrap.append(el('p','Preview unavailable','preview-fallback'));revealMedia(wrap);}
    else img.replaceWith(el('div','Preview unavailable. Open the source to view this reference.','text-preview'));
   };
   loadPreview(wrap||img,item,remote,scope,value=>{
    img.width=value.width;img.height=value.height;img.src=value.url;
-   if(wrap){if(item.kind==='x_post')wrap.style.aspectRatio=String(value.width/value.height);wrap.classList.remove('media-loading');wrap.classList.add('media-ready');wrap.querySelector('.loading-bone')?.remove();}
+   if(wrap){if(item.kind==='x_post')wrap.style.aspectRatio=String(value.width/value.height);revealMedia(wrap);}
   },fallback);
   img.addEventListener('error',fallback,{once:true});return wrap||img;
  }
@@ -212,7 +212,7 @@ function renderFolders(){
  bar.hidden=section!=='x_post'||!window.libraryAPI?.cloud;
  if(bar.hidden)return;
  if(!statusSnapshot||$('#collection-slot').dataset.loading==='true'){showFolderLoading();return;}
- if(clearFolderLoading())folderOptionSignature='';
+ const revealFolders=clearFolderLoading();if(revealFolders)folderOptionSignature='';
  const snapshot=state?.bookmarks?.folder_snapshot||statusSnapshot?.bookmarks?.folder_snapshot,folders=folderOptions(snapshot);
  selectedFolders=validFolderSelection(selectedFolders,snapshot);
  const signature=JSON.stringify([folders.map(f=>[f.id,f.name]),!!snapshot?.synced_at]);
@@ -228,6 +228,7 @@ function renderFolders(){
   if(focused){const next=[...filters.children].find(pill=>pill.dataset.folder===focused)||filters.firstElementChild;next?.focus();}
  }
  for(const pill of filters.children)pill.setAttribute('aria-pressed',String(pill.dataset.folder==='all'?!selectedFolders.length:selectedFolders.includes(pill.dataset.folder)));
+ revealFolders?.();
  const note=$('#folder-status');
  const bookmarks=state?.bookmarks||statusSnapshot?.bookmarks,cloudError=state?.cloud_error||statusSnapshot?.cloud_error;
  const allowancePaused=[bookmarks?.message,bookmarks?.folder_error].includes('Spending allowance reached');
@@ -261,10 +262,15 @@ searchForm.addEventListener('focusout',event=>{
 });
 searchForm.addEventListener('pointerdown',e=>{if(e.target===searchForm)searchInput.focus({preventScroll:true});});
 function filteredItems(){return state.captures.filter(i=>!i.fixture&&i.kind===section&&(section!=='x_post'||inFolder(i,selectedFolders,state.bookmarks?.folder_snapshot))&&matchesReference(i,metadata(i),query));}
+let renderedSelection='';
 function renderGrid(){
- const grid=$('#captures');clearLoadingGrid(grid);searchControl.hidden=false;renderFolders();
+ const grid=$('#captures');searchControl.hidden=false;renderFolders();
+ const selection=JSON.stringify([section,query,selectedFolders]);
+ const changedSelection=!!renderedSelection&&selection!==renderedSelection;
+ if(changedSelection)settleLoadingReveal(grid);renderedSelection=selection;
  if(!state){showLoadingGrid(grid,section);$('#loading-status').textContent='Loading your library';return;}
  const items=filteredItems();
+ const revealGrid=!items.length&&state._loading?()=>{}:clearLoadingGrid(grid,{reveal:!changedSelection});
  grid.setAttribute('aria-busy',String(!!state._loading));
  $('#loading-status').textContent=state._loading?'Loading the rest of your library':'';
  searchControl.hidden=false;
@@ -279,6 +285,7 @@ function renderGrid(){
  syncPreviews();
  if(!items.length&&state._loading){showLoadingGrid(grid,section);return;}
  if(!items.length&&!state._incomplete){grid.className='web-grid';const empty=el('div',null,'empty');empty.append(el('h2',query?'No matching references':selectedFolders.length>0&&section==='x_post'?'No bookmarks in the selected folders':'Your collection starts here'),el('p',query?(section==='x_post'&&selectedFolders.length?'Try another name or keyword, or select All folders.':'Try another name, handle or keyword.'):selectedFolders.length>0&&section==='x_post'?'Folder assignments update from X. Only bookmarks already included in your library appear here.':section==='x_post'?(window.libraryAPI?.cloud?'Import your local collection to bring your saved references here.':'New bookmarks on X will appear after the next sync.'):'Save a website with the browser extension.'));if(query)empty.append(btn('Clear search',clearSearch,'text-action search-reset'));grid.append(empty);emptyGrid=empty;}
+ revealGrid([...grid.querySelectorAll(':scope > article:not([hidden]), :scope > .empty')]);
 }
 function createCard(item){const cleanupStart=gridCleanups.length;const card=el('article',null,item.kind==='x_post'?'card':'website-card');card.dataset.id=item.id;if(item.kind==='x_post'){const surface=el('div',null,'card-surface');surface.append(mediaPreview(item,'grid'));const open=btn('',e=>openDetail(item.id,open,e.detail>0),'open-card');open.setAttribute('aria-label',`Open reference: ${shortTitle(item)}`);surface.append(open);const count=albumItems(item).length;if(count>1){const badge=el('span',String(count),'album-count');badge.setAttribute('aria-label',`${count} media items`);surface.append(badge);}card.append(surface);resizeObserver.observe(surface);}else{const image=el('a',null,'website-image');image.href=item.url;image.target='_blank';image.rel='noopener noreferrer';image.setAttribute('aria-label',`Visit ${item.title}`);image.append(mediaPreview(item,'grid'));const title=el('h2'),titleLink=el('a',null,'website-title-link'),titleText=el('span',item.title,'website-title-text'),chevron=el('span',null,'website-chevron');chevron.setAttribute('aria-hidden','true');titleLink.href=item.url;titleLink.target='_blank';titleLink.rel='noopener noreferrer';titleLink.title=item.title;titleLink.append(titleText,chevron);title.append(titleLink);card.append(image,title);}const cleanups=gridCleanups.splice(cleanupStart);return {node:card,dispose(){resizeObserver.unobserve(card.querySelector('.card-surface')||card);for(const cleanup of cleanups)cleanup();}};}
 function syncSummary(){if(window.libraryAPI?.cloud){const b=state?.bookmarks;$('#sync-status').textContent=syncNotice(b,state?.cloud_error);$('#sync-status').title=b?.message||'';return;}const c=state?.cloud_sync;const cloudLabel=document.querySelector('#cloud-status');if(cloudLabel)cloudLabel.textContent=c?.needs_sign_in?'Cloud · Sign in again':c?.enabled?(c.pending?`Cloud · ${c.pending} waiting`:'Cloud · Saved'):'Cloud · Connect or resume';const b=state?.bookmarks;if(!b){$('#sync-status').textContent='Saved locally';return;}$('#sync-status').textContent=b.enabled?'X sync on · Checks every 15 minutes':b.phase==='ready'?'X sync paused · Manage in Capture Lab':'Connect X in Capture Lab';$('#sync-status').title=b.message||'';}

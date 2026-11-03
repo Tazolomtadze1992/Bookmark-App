@@ -1,9 +1,33 @@
 import {createSkeletonBox} from './skullet.js';
 import {createLoadQueue} from './load-queue.js';
 import {waitForImages,waitForFont} from './asset-readiness.js';
+import {createLoadingTransitions} from './loading-transition.js';
 
 const queue=createLoadQueue({limit:4}),previews=new Map(),nearby=new Set();
 const node=(tag,cls)=>Object.assign(document.createElement(tag),{className:cls});
+const transitions=createLoadingTransitions({
+ duration:element=>matchMedia('(prefers-reduced-motion: reduce)').matches?0:parseFloat(getComputedStyle(element).getPropertyValue('--loading-reveal-duration'))||0,
+ visible:element=>{if(document.hidden||!element.isConnected)return false;const rect=element.getBoundingClientRect();return rect.width>0&&rect.height>0&&rect.bottom>0&&rect.top<innerHeight&&rect.right>0&&rect.left<innerWidth;},
+ opacity:element=>Number(getComputedStyle(element).opacity)
+});
+export const settleLoadingReveal=element=>transitions.settle(element);
+export function revealMedia(element){
+ const bone=element.querySelector(':scope > .loading-bone');
+ if(bone&&!bone.dataset.exiting){bone.dataset.exiting='true';transitions.reveal(element,{skeleton:bone,content:[...element.children].filter(child=>child!==bone)});}
+ element.classList.remove('media-loading');
+}
+function snapshot(container,elements,className){
+ const bounds=container.getBoundingClientRect(),sizes=elements.map(element=>element.getBoundingClientRect());
+ const overlay=node('div',className);overlay.inert=true;overlay.setAttribute('aria-hidden','true');
+ for(const [index,element] of elements.entries()){
+  const copy=element.cloneNode(true),rect=sizes[index];copy.removeAttribute('id');
+  const bones=[...element.querySelectorAll('.loading-bone')];
+  for(const [i,bone] of [...copy.querySelectorAll('.loading-bone')].entries())Object.assign(bone.style,{opacity:getComputedStyle(bones[i]).opacity,animation:'none'});
+  Object.assign(copy.style,{position:'absolute',left:`${rect.left-bounds.left}px`,top:`${rect.top-bounds.top}px`,width:`${rect.width}px`,height:`${rect.height}px`,margin:'0'});
+  overlay.append(copy);
+ }
+ overlay.style.height=`${bounds.height}px`;container.append(overlay);return overlay;
+}
 export function skeletonBox(className='loading-bone'){
  const bone=createSkeletonBox({width:'100%',height:'100%',radius:'inherit'});
  bone.className=className;bone.setAttribute('aria-hidden','true');return bone;
@@ -13,8 +37,10 @@ const headerFont=waitForFont(document.fonts);
 export function beginHeaderLoading({folders=true}={}){
  ++headerRevision;
  for(const slot of document.querySelectorAll('[data-header-slot]')){
+  transitions.settle(slot);
   slot.hidden=false;slot.inert=true;slot.dataset.loading='true';delete slot.dataset.reveal;slot.setAttribute('aria-busy','true');
   const overlay=slot.querySelector('.header-loading-overlay');
+  overlay.hidden=false;
   if(!overlay.dataset.skullet){overlay.replaceChildren(skeletonBox());overlay.dataset.skullet='true';}
  }
  if(folders)showFolderLoading();else document.querySelector('#folder-bar').hidden=true;
@@ -26,6 +52,8 @@ export async function revealHeaderControls(){
  window.libraryTheme?.refresh();
  for(const slot of document.querySelectorAll('[data-header-slot]')){
   slot.inert=false;slot.dataset.loading='false';slot.dataset.reveal='true';slot.removeAttribute('aria-busy');
+  const overlay=slot.querySelector('.header-loading-overlay');
+  transitions.reveal(slot,{skeleton:overlay,content:[...slot.children].filter(child=>child!==overlay),cleanup:()=>{overlay.hidden=true;overlay.replaceChildren();delete overlay.dataset.skullet;}});
  }
 }
 export function showFolderLoading(){
@@ -39,8 +67,10 @@ export function clearFolderLoading(){
  const bar=document.querySelector('#folder-bar'),filters=document.querySelector('#folder-filters');
  const wasLoading=bar.dataset.loading==='true';
  bar.dataset.loading='false';filters.inert=false;filters.removeAttribute('aria-busy');
- if(wasLoading){for(const pill of filters.querySelectorAll('.folder-loading-pill'))pill.remove();bar.dataset.reveal='true';}
- return wasLoading;
+ if(!wasLoading)return null;
+ const overlay=snapshot(bar,[...filters.querySelectorAll('.folder-loading-pill')],'loading-exit-layer');
+ for(const pill of filters.querySelectorAll('.folder-loading-pill'))pill.remove();bar.dataset.reveal='true';
+ return ()=>transitions.reveal(bar,{skeleton:overlay,content:[filters]});
 }
 // One observer for the entire collection. Only near-screen previews enter the queue.
 const observer=new IntersectionObserver(entries=>{
@@ -76,6 +106,8 @@ export function syncPreviews(){for(const preview of previews.values())preview.sy
 document.addEventListener('visibilitychange',syncPreviews);
 
 export function showLoadingGrid(grid,section){
+ if(grid.dataset.loadingSection===section&&grid.querySelector(':scope > .loading-card'))return;
+ clearLoadingGrid(grid);grid.dataset.loadingSection=section;
  grid.className=section==='x_post'?'masonry':'web-grid';grid.setAttribute('aria-busy','true');
  for(let i=0;i<8;i++){
   const card=node('div',section==='x_post'?'card loading-card':'website-card loading-card');card.setAttribute('aria-hidden','true');
@@ -86,4 +118,9 @@ export function showLoadingGrid(grid,section){
  measureLoadingGrid(grid);
 }
 export function measureLoadingGrid(grid){if(grid.classList.contains('masonry'))for(const surface of grid.querySelectorAll('.loading-surface'))surface.parentElement.style.gridRowEnd=`span ${Math.ceil(surface.getBoundingClientRect().height+12)}`;}
-export function clearLoadingGrid(grid){for(const card of grid.querySelectorAll('.loading-card'))card.remove();grid.removeAttribute('aria-busy');}
+export function clearLoadingGrid(grid,{reveal=false}={}){
+ const cards=[...grid.querySelectorAll(':scope > .loading-card')];
+ const overlay=reveal&&cards.length?snapshot(grid,cards,'loading-exit-layer'):null;
+ for(const card of cards)card.remove();delete grid.dataset.loadingSection;grid.removeAttribute('aria-busy');
+ return content=>overlay?transitions.reveal(grid,{skeleton:overlay,content}):Promise.resolve();
+}

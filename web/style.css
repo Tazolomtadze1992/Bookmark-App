@@ -385,7 +385,7 @@ html{scrollbar-gutter:stable}
 :root[data-theme-changing]{--theme-color-duration:0ms}
 
 /* Skullet blocks use our external stylesheet, preserving the private library's CSP. */
-:root{--skullet:1;--skullet-animation:none;--skullet-base:oklch(0.92 0 0)}
+:root{--skullet:1;--skullet-animation:none;--skullet-base:oklch(0.92 0 0);--loading-reveal-duration:200ms}
 :root[data-theme="dark"]{--skullet-base:oklch(0.28 0 0)}
 [skullet-bar]{display:block;background-color:var(--skullet-base);pointer-events:none}
 .loading-surface,.image-preview{position:relative;width:100%;overflow:hidden;border-radius:inherit}
@@ -397,16 +397,14 @@ html{scrollbar-gutter:stable}
 @keyframes loading-breathe{0%,100%{opacity:1}50%{opacity:.72}}
 .image-preview>.media-image{display:block;width:100%;height:auto;opacity:1}
 .image-preview.media-loading>.media-image{opacity:0}
-.image-preview.media-ready>.media-image{animation:preview-reveal 140ms ease-out}
 .preview-fallback{position:absolute;inset:0;display:grid;place-items:center;margin:0;padding:16px;color:var(--muted);font-size:13px;line-height:1.4;text-align:center}
 .website-image>.image-preview{aspect-ratio:1.88}
 .website-image .image-preview>.media-image{height:100%;object-fit:cover;object-position:top}
 .card-surface>.motion-wrap{aspect-ratio:var(--media-ratio,1)}
 .loading-retry{display:inline-flex;margin-left:12px;padding:0;text-decoration:underline;text-underline-offset:3px;color:var(--ink)}
-@keyframes preview-reveal{from{opacity:0}to{opacity:1}}
 @media(prefers-reduced-motion:reduce){
  .loading-card .loading-bone,.media-loading[data-near="true"]>.loading-bone{animation:none}
- .image-preview.media-ready>.media-image{animation:none}
+ :root{--loading-reveal-duration:0ms}
 }
 
 /* Reserve the complete header from the first paint; each group owns its readiness. */
@@ -417,14 +415,14 @@ html{scrollbar-gutter:stable}
 .header-loading-overlay{position:absolute;left:4px;top:4px;width:32px;height:32px;border-radius:50%;pointer-events:none}
 #collection-slot>.header-loading-overlay{left:0;width:84px;border-radius:999px}
 [data-header-slot][data-loading="true"]>:not(.header-loading-overlay){visibility:hidden}
-[data-header-slot]:not([data-loading="true"])>.header-loading-overlay{display:none}
 .header-loading-overlay .loading-bone,.folder-loading-pill .loading-bone{animation:loading-breathe 2400ms ease-in-out infinite}
 .folder-loading-pill{position:relative;display:block;flex:none;width:48px;height:40px;border-radius:999px}
 .folder-loading-pill>.loading-bone{top:4px;bottom:4px;height:auto!important}
 .folder-loading-pill:nth-child(2),.folder-loading-pill:nth-child(6){width:76px}
 .folder-loading-pill:nth-child(3){width:80px}
 .folder-loading-pill:nth-child(5){width:64px}
-[data-header-slot][data-reveal="true"]>:not(.header-loading-overlay),.folder-bar[data-reveal="true"] #folder-filters{animation:preview-reveal 140ms ease-out}
+#captures,.folder-bar{position:relative}
+.loading-exit-layer{position:absolute;inset:0;z-index:4;width:100%;pointer-events:none}
 @media(pointer:coarse){
  .topbar #collection-slot{height:44px}
  #search-slot,#theme-slot{width:44px;height:44px}
@@ -434,5 +432,5 @@ html{scrollbar-gutter:stable}
  .folder-loading-pill>.loading-bone{top:6px;bottom:6px}
 }
 @media(prefers-reduced-motion:reduce){
- .header-loading-overlay .loading-bone,.folder-loading-pill .loading-bone,[data-header-slot][data-reveal="true"]>:not(.header-loading-overlay),.folder-bar[data-reveal="true"] #folder-filters{animation:none}
+ .header-loading-overlay .loading-bone,.folder-loading-pill .loading-bone{animation:none}
 }
