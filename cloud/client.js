@@ -1,5 +1,6 @@
 import {syncNotice} from '../web/sync-status.js';
 import {createClient} from '@supabase/supabase-js';
+import {readLibraryState} from './library-state.js';
 const db=createClient(SUPABASE_URL,SUPABASE_KEY);
 let user;
 const main=document.querySelector('main');
@@ -24,27 +25,18 @@ login.remove();main.hidden=false;document.querySelector('nav').hidden=false;labL
 labLink.textContent='Sign out';labLink.setAttribute('aria-label','Sign out');labLink.href='#';labLink.addEventListener('click',async e=>{e.preventDefault();const {error}=await db.auth.signOut({scope:'local'});if(error){document.querySelector('#status').textContent=error.message;return;}location.replace('/');});
 personalLabel.textContent='Private · Saved in your account';
 const reply=data=>new Response(JSON.stringify(data),{headers:{'Content-Type':'application/json'}});
-const remoteMedia=(value,host)=>{try{const u=new URL(value);return u.protocol==='https:'&&u.hostname===host&&!u.username&&!u.password&&(!u.port||u.port==='443')?u.href:null;}catch{return null;}};
+const loadState=options=>readLibraryState(async(offset,size)=>{
+ const {data,error}=await db.from('library_references').select('id,record,motion,poster,metadata').is('deleted_at',null).order('saved_at',{ascending:false}).order('id').range(offset,offset+size-1).abortSignal(AbortSignal.timeout(20000));
+ if(error)throw error;return data;
+},options);
 window.libraryAPI={
  cloud:true,
- async request(path,method='GET',body){
-  if(path==='/api/state'){
-   const rows=[];let offset=0;
-   while(true){const {data,error}=await db.from('library_references').select('id,record,motion,poster,metadata').is('deleted_at',null).order('saved_at',{ascending:false}).order('id').range(offset,offset+499);if(error)throw error;rows.push(...data);if(data.length<500)break;offset+=500;}
-   const state={captures:[],motion:{},x_images:{},x_metadata:{},bookmarks:null};
-   for(const row of rows){
-    const item={...row.record,id:row.id};
-    if(!/^https?:\/\//i.test(item.url)||!['website','x_post'].includes(item.kind))continue;
-    state.captures.push(item);const pid=item.post_id;
-    if(pid&&row.motion&&remoteMedia(row.motion.url,'video.twimg.com'))state.motion[pid]=row.motion;
-    if(pid&&remoteMedia(row.poster,'pbs.twimg.com'))state.x_images[pid]=row.poster;
-    if(pid&&row.metadata){state.x_metadata[pid]={...row.metadata,avatar:remoteMedia(row.metadata.avatar,'pbs.twimg.com')||'',media:(Array.isArray(row.metadata.media)?row.metadata.media:[]).map(m=>({...m,poster:remoteMedia(m.poster,'pbs.twimg.com'),motion:m.motion&&remoteMedia(m.motion.url,'video.twimg.com')?m.motion:null}))};}
-   }
-   try{state.bookmarks=await cloudRequest('/status');}catch(e){state.cloud_error=e.message;}
-   return reply(state);
-  }
+ loadState,
+ async request(path,method='GET',body,options={}){
+  if(path==='/api/state')return reply(await loadState());
+  if(path==='/api/status')return reply(await cloudRequest('/status'));
   const image=path.match(/^\/api\/image\/([a-f0-9]{32})$/);
-  if(image){const {data,error}=await db.storage.from('previews').download(`${user.id}/${image[1]}.jpg`);if(error)throw error;return new Response(data,{headers:{'Content-Type':'image/jpeg'}});}
+  if(image){const {data,error}=await db.storage.from('previews').download(`${user.id}/${image[1]}.jpg`,{}, {signal:options.signal});if(error)throw error;return new Response(data,{headers:{'Content-Type':'image/jpeg'}});}
   if(path==='/api/trash'){
    const {error}=await db.from('library_references').update({deleted_at:new Date().toISOString()}).eq('id',body.id);if(error)throw error;return reply({ok:true});
   }
@@ -54,7 +46,7 @@ window.libraryAPI={
 };
 async function cloudRequest(path,body={}){
  const {data:{session},error}=await db.auth.getSession();if(error||!session)throw Error('Sign in again to continue.');
- const r=await fetch(SUPABASE_URL+'/functions/v1/library-service'+path,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token},body:JSON.stringify(body)});
+ const r=await fetch(SUPABASE_URL+'/functions/v1/library-service'+path,{method:'POST',...(path==='/status'?{signal:AbortSignal.timeout(20000)}:{}),headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token},body:JSON.stringify(body)});
  const data=await r.json();if(!r.ok)throw Error(data.error||'Cloud connection failed.');return data;
 }
 const tools=document.createElement('details');tools.className='cloud-tools';

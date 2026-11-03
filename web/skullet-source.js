@@ -1,0 +1,1 @@
+export {createSkeletonBox} from 'skullet';

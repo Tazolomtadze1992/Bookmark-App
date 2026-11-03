@@ -383,3 +383,28 @@ html{scrollbar-gutter:stable}
 /* Theme swaps are atomic; hover fades resume after the new colors paint.
    This token only controls color/surface transitions, never icon or viewer motion. */
 :root[data-theme-changing]{--theme-color-duration:0ms}
+
+/* Skullet blocks use our external stylesheet, preserving the private library's CSP. */
+:root{--skullet:1;--skullet-animation:none;--skullet-base:oklch(0.92 0 0)}
+:root[data-theme="dark"]{--skullet-base:oklch(0.28 0 0)}
+[skullet-bar]{display:block;background-color:var(--skullet-base);pointer-events:none}
+.loading-surface,.image-preview{position:relative;width:100%;overflow:hidden;border-radius:inherit}
+.loading-surface{border-radius:10px}
+.loading-bone{position:absolute;inset:0;z-index:1;pointer-events:none}
+.loading-title{position:relative;width:58%;height:12px;margin-top:16px;border-radius:4px}
+.loading-card{pointer-events:none}
+.loading-card .loading-bone,.media-loading[data-near="true"]>.loading-bone{animation:loading-breathe 2400ms ease-in-out infinite}
+@keyframes loading-breathe{0%,100%{opacity:1}50%{opacity:.72}}
+.image-preview>.media-image{display:block;width:100%;height:auto;opacity:1}
+.image-preview.media-loading>.media-image{opacity:0}
+.image-preview.media-ready>.media-image{animation:preview-reveal 140ms ease-out}
+.preview-fallback{position:absolute;inset:0;display:grid;place-items:center;margin:0;padding:16px;color:var(--muted);font-size:13px;line-height:1.4;text-align:center}
+.website-image>.image-preview{aspect-ratio:1.88}
+.website-image .image-preview>.media-image{height:100%;object-fit:cover;object-position:top}
+.card-surface>.motion-wrap{aspect-ratio:var(--media-ratio,1)}
+.loading-retry{display:inline-flex;margin-left:12px;padding:0;text-decoration:underline;text-underline-offset:3px;color:var(--ink)}
+@keyframes preview-reveal{from{opacity:0}to{opacity:1}}
+@media(prefers-reduced-motion:reduce){
+ .loading-card .loading-bone,.media-loading[data-near="true"]>.loading-bone{animation:none}
+ .image-preview.media-ready>.media-image{animation:none}
+}
