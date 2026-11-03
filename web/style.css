@@ -90,7 +90,16 @@ dialog::backdrop{background:var(--backdrop);backdrop-filter:blur(3px)}.detail-st
   --icon-filter: invert(1);
 }
 html,body{background:var(--canvas);color:var(--ink)}
-.website-card h2{color:var(--website-title)}
+.website-card h2{color:var(--website-title);overflow:visible}
+.website-title-link{display:flex;align-items:center;gap:8px}
+.website-title-text{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Interfaces-style link hint. Reserve its width so titles never jump on hover. */
+.website-chevron{position:relative;isolation:isolate;display:grid;place-items:center;flex:0 0 26px;height:20px;color:oklch(0.62 0 0);opacity:0;transform:translateX(-2px) scale(.75);pointer-events:none;transition:transform 300ms cubic-bezier(0,0,.2,1),opacity 300ms cubic-bezier(0,0,.2,1)}
+.website-chevron::before{content:'';position:absolute;inset:-2px 1px;z-index:-1;border-radius:50%;background:var(--category-bg)}
+.website-chevron::after{content:'';width:16px;height:16px;background:currentColor;mask:url('/icons/chevron-right.svg') center/contain no-repeat}
+@media(hover:hover) and (pointer:fine){.website-card:hover .website-chevron{opacity:1;transform:none}}
+.website-image:focus-visible~h2 .website-chevron,.website-title-link:focus-visible .website-chevron{opacity:1;transform:none;transition:none}
+@media(prefers-reduced-motion:reduce){.website-chevron{transform:none;transition:opacity 100ms ease}}
 input,select{color:var(--ink);caret-color:var(--ink)}
 .menu-panel,.cloud-panel,.detail-info,.detail-nav,#detail-copy{background:var(--surface)}
 .tab.active{background:var(--selected);color:var(--ink)}
