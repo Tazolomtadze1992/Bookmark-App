@@ -34,6 +34,7 @@ All interface colors use neutral OKLCH (C=0), so saved media supplies the color.
 | `hover` | `oklch(0.935 0 0)` | `oklch(0.29 0 0)` |
 | `selected` | `oklch(0.915 0 0)` | `oklch(0.32 0 0)` |
 | `ink` | `oklch(0.28 0 0)` | `oklch(0.94 0 0)` |
+| `website-title` | `oklch(0.5 0 0)` | `oklch(0.78 0 0)` |
 | `muted` | `oklch(0.46 0 0)` | `oklch(0.8 0 0)` |
 | `line` | `oklch(0.9 0 0)` | `oklch(0.34 0 0)` |
 | `focus` | `oklch(0.52 0 0)` | `oklch(0.72 0 0)` |
@@ -55,3 +56,17 @@ All interface colors use neutral OKLCH (C=0), so saved media supplies the color.
 | Dark Focus ring | Selected control | 5.11:1 | 47.4 |
 
 Appearance controls: System (default), Light, Dark. Selection is stored locally per browser and reflected across tabs. Source images/videos are not recolored. Contrast values are palette checks, not a full accessibility certification.
+
+## Website titles
+
+Only website card titles use the quieter `website-title` role; size stays 14px
+and weight stays 500. Their linked previews and titles keep their destinations.
+
+| Before | After |
+| --- | --- |
+| Light title: inherited `oklch(0.28 0 0)` | `--website-title: oklch(0.5 0 0)` |
+| Dark title: inherited `oklch(0.94 0 0)` | `--website-title: oklch(0.78 0 0)` |
+
+Against the existing canvas, the light pairing measures 5.75:1 WCAG / 77.0 APCA
+Lc, and the dark pairing measures 9.40:1 / -63.0 Lc. Neutral OKLCH luminance and
+apca-w3 were used for these checks; both meet the skills' non-body label target.
