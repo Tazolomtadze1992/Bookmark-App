@@ -5,7 +5,7 @@ import {mountCollectionMenu} from './collection-menu.js';
 import {createNavigationMotion} from './navigation-motion.js';
 import {createGridCache} from './grid-cache.js';
 import {matchesReference,searchShortcut} from './search.js';
-import {skeletonBox,watchPreview,acquirePreview,syncPreviews,showLoadingGrid,clearLoadingGrid,measureLoadingGrid} from './loading.js';
+import {skeletonBox,watchPreview,acquirePreview,syncPreviews,showLoadingGrid,clearLoadingGrid,measureLoadingGrid,beginHeaderLoading,revealHeaderControls,showFolderLoading,clearFolderLoading} from './loading.js';
 const $ = s => document.querySelector(s);
 const token = $('meta[name="local-token"]').content;
 let state=null, section='x_post', query='', activeId=null,  returnFocus=null, pendingRefresh=false;
@@ -211,7 +211,9 @@ function renderFolders(){
  const bar=$('#folder-bar'),filters=$('#folder-filters');
  bar.hidden=section!=='x_post'||!window.libraryAPI?.cloud;
  if(bar.hidden)return;
- const snapshot=state.bookmarks?.folder_snapshot,folders=folderOptions(snapshot);
+ if(!statusSnapshot||$('#collection-slot').dataset.loading==='true'){showFolderLoading();return;}
+ if(clearFolderLoading())folderOptionSignature='';
+ const snapshot=state?.bookmarks?.folder_snapshot||statusSnapshot?.bookmarks?.folder_snapshot,folders=folderOptions(snapshot);
  selectedFolders=validFolderSelection(selectedFolders,snapshot);
  const signature=JSON.stringify([folders.map(f=>[f.id,f.name]),!!snapshot?.synced_at]);
  if(signature!==folderOptionSignature){
@@ -227,9 +229,10 @@ function renderFolders(){
  }
  for(const pill of filters.children)pill.setAttribute('aria-pressed',String(pill.dataset.folder==='all'?!selectedFolders.length:selectedFolders.includes(pill.dataset.folder)));
  const note=$('#folder-status');
- const allowancePaused=[state.bookmarks?.message,state.bookmarks?.folder_error].includes('Spending allowance reached');
- note.textContent=window.libraryAPI?.cloud?(!statusSnapshot?'Loading folder status…':syncNotice(state.bookmarks,state.cloud_error)):state.cloud_error?'Folder status unavailable':allowancePaused?'X sync paused — spending limit reached':state.bookmarks?.folder_error?'Folder sync needs attention':!snapshot?.synced_at?'Folders haven’t synced yet':folders.length?'':'Create folders on X to organize your bookmarks.';
- note.title=window.libraryAPI?.cloud?(state.bookmarks?.message||state.cloud_error||'Automatic X checks')+' · Manage connections at #manage.':allowancePaused?'New bookmarks and folder updates are paused by the app’s safety allowance. This estimate is not your actual X bill. See connections at #manage.':state.bookmarks?.folder_error||'Folder names and assignments come from X. Existing old-bookmark exclusions still apply.';
+ const bookmarks=state?.bookmarks||statusSnapshot?.bookmarks,cloudError=state?.cloud_error||statusSnapshot?.cloud_error;
+ const allowancePaused=[bookmarks?.message,bookmarks?.folder_error].includes('Spending allowance reached');
+ note.textContent=window.libraryAPI?.cloud?syncNotice(bookmarks,cloudError):cloudError?'Folder status unavailable':allowancePaused?'X sync paused — spending limit reached':bookmarks?.folder_error?'Folder sync needs attention':!snapshot?.synced_at?'Folders haven’t synced yet':folders.length?'':'Create folders on X to organize your bookmarks.';
+ note.title=window.libraryAPI?.cloud?(bookmarks?.message||cloudError||'Automatic X checks')+' · Manage connections at #manage.':allowancePaused?'New bookmarks and folder updates are paused by the app’s safety allowance. This estimate is not your actual X bill. See connections at #manage.':bookmarks?.folder_error||'Folder names and assignments come from X. Existing old-bookmark exclusions still apply.';
 }
 const searchControl=$('#search-control'),searchForm=$('#library-search'),searchInput=$('#search-input'),clearSearchButton=$('#clear-search'),searchResults=$('#search-results');
 let searchOpen=false;
@@ -250,7 +253,7 @@ searchInput.addEventListener('input',e=>{if(!e.isComposing)updateSearch();});
 searchInput.addEventListener('compositionend',updateSearch);
 clearSearchButton.addEventListener('click',e=>{if(searchInput.value)clearSearch();else setSearchOpen(false,{animate:e.detail>0,restoreFocus:true});});
 searchForm.addEventListener('keydown',e=>{if(e.key==='Escape'&&!e.isComposing){e.preventDefault();if(searchInput.value)clearSearch();else setSearchOpen(false,{restoreFocus:true});}});
-document.addEventListener('keydown',e=>{if(searchControl.hidden||!searchShortcut(e,{modalOpen:dialog.open}))return;e.preventDefault();openSearch({animate:false});});
+document.addEventListener('keydown',e=>{if(searchControl.hidden||searchControl.parentElement?.inert||!searchShortcut(e,{modalOpen:dialog.open}))return;e.preventDefault();openSearch({animate:false});});
 document.addEventListener('pointerdown',e=>{if(searchOpen&&!searchInput.value&&!searchControl.contains(e.target))setSearchOpen(false,{animate:e.pointerType!=='touch'});});
 searchForm.addEventListener('focusout',event=>{
  if(searchControl.contains(event.relatedTarget))return;
@@ -259,9 +262,9 @@ searchForm.addEventListener('focusout',event=>{
 searchForm.addEventListener('pointerdown',e=>{if(e.target===searchForm)searchInput.focus({preventScroll:true});});
 function filteredItems(){return state.captures.filter(i=>!i.fixture&&i.kind===section&&(section!=='x_post'||inFolder(i,selectedFolders,state.bookmarks?.folder_snapshot))&&matchesReference(i,metadata(i),query));}
 function renderGrid(){
- const grid=$('#captures');clearLoadingGrid(grid);searchControl.hidden=false;
+ const grid=$('#captures');clearLoadingGrid(grid);searchControl.hidden=false;renderFolders();
  if(!state){showLoadingGrid(grid,section);$('#loading-status').textContent='Loading your library';return;}
- renderFolders();const items=filteredItems();
+ const items=filteredItems();
  grid.setAttribute('aria-busy',String(!!state._loading));
  $('#loading-status').textContent=state._loading?'Loading the rest of your library':'';
  searchControl.hidden=false;
@@ -292,7 +295,7 @@ async function refreshStatus(force=false){
  statusRequest=(async()=>{
   try{statusSnapshot={bookmarks:await(await api('/api/status')).json(),cloud_error:null};lastStatusAt=Date.now();}
   catch(e){statusSnapshot={bookmarks:statusSnapshot?.bookmarks||state?.bookmarks||null,cloud_error:e.message};}
-  if(state){Object.assign(state,statusSnapshot);syncSummary();if(!dialog.open)renderGrid();}
+  if(state){Object.assign(state,statusSnapshot);syncSummary();if(!dialog.open)renderGrid();}else renderFolders();
  })().finally(()=>{statusRequest=null;});return statusRequest;
 }
 function loadError(e){
@@ -348,7 +351,8 @@ dialog.addEventListener('click',e=>{
 },true);
 
 dialog.addEventListener('close',()=>{detailPointer=null;detailMotion.settle();for(const c of detailCleanups.splice(0))c();$('#detail-stage').replaceChildren();detailSource?.classList.remove('detail-source');detailSource=null;document.body.classList.remove('detail-open');activeId=null;closingDetail=null;for(const p of players)p.sync();returnFocus?.focus({preventScroll:true});if(pendingRefresh){pendingRefresh=false;const id=returnFocus?.closest('[data-id]')?.dataset.id;refresh().then(()=>{document.querySelector(`[data-id="${id}"] .open-card`)?.focus({preventScroll:true});}).catch(error);}});
-mountCollectionMenu($('#collection-menu'),{value:section,themeContainer:$('#theme-control'),searchContainer:$('#search-trigger'),onSearchOpen:openSearch,onValueChange:(value,{animate})=>{const direction=value==='website'?1:-1;section=value;if(state){renderFolders();navigationMotion.update({animate,direction}).catch(error);}else renderGrid();}});
+beginHeaderLoading({folders:!!window.libraryAPI?.cloud});
+mountCollectionMenu($('#collection-menu'),{onReady:async()=>{await revealHeaderControls();renderFolders();},value:section,themeContainer:$('#theme-control'),searchContainer:$('#search-trigger'),onSearchOpen:openSearch,onValueChange:(value,{animate})=>{const direction=value==='website'?1:-1;section=value;if(state){renderFolders();navigationMotion.update({animate,direction}).catch(error);}else renderGrid();}});
 if(!window.libraryAPI?.cloud){const link=el('a','Cloud saves');link.id='cloud-status';link.href='/cloud';document.querySelector('.account-panel').append(link);}
 if(!window.libraryAPI?.cloud){const management=$('#library-management');const showManagement=()=>{management.hidden=location.hash!=='#manage';};addEventListener('hashchange',showManagement);showManagement();}
 window.addEventListener('library-refresh',()=>{refresh().catch(loadError);refreshStatus(true);});

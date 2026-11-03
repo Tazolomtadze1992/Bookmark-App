@@ -1,10 +1,13 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="local-token" content="__LOCAL_TOKEN__"><link rel="icon" href="/icons/bookmark-simple.svg" type="image/svg+xml"><title>Reference Library</title><link rel="preload" href="/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin><script src="/theme.js"></script><link rel="stylesheet" href="/style.css"><script type="module" src="/app.js"></script></head>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="local-token" content="__LOCAL_TOKEN__"><link rel="icon" href="/icons/bookmark-simple.svg" type="image/svg+xml"><title>Reference Library</title><link rel="preload" href="/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin><link rel="preload" as="image" href="/icons/twitter.svg"><link rel="preload" as="image" href="/icons/computer.svg"><link rel="preload" as="image" href="/icons/magnifying-glass.svg"><link rel="preload" as="image" href="/icons/sun.svg"><link rel="preload" as="image" href="/icons/moon.svg"><link rel="preload" as="image" href="/icons/x.svg"><script src="/theme.js"></script><link rel="stylesheet" href="/style.css"><script type="module" src="/app.js"></script></head>
 <body>
 <header class="topbar">
-<nav aria-label="Library sections"><div id="collection-menu"></div></nav>
-<div id="folder-bar" class="folder-bar" hidden><p class="sr-only" id="folder-help">Select one or more folders. Shows bookmarks in any selected folder. All clears the selection.</p><div id="folder-filters" role="group" aria-label="Filter X bookmarks by folder" aria-describedby="folder-help"></div></div>
+<nav id="collection-slot" class="header-slot" data-header-slot="collection" data-loading="true" inert aria-busy="true" aria-label="Library sections"><div id="collection-menu"></div><span class="header-loading-overlay" aria-hidden="true"><span class="loading-bone" skullet-bar></span></span></nav>
+<div id="folder-bar" class="folder-bar" data-loading="true"><p class="sr-only" id="folder-help">Select one or more folders. Shows bookmarks in any selected folder. All clears the selection.</p><div id="folder-filters" role="group" aria-label="Filter X bookmarks by folder" aria-describedby="folder-help" aria-busy="true" inert>
+<span class="folder-loading-pill" aria-hidden="true"><span class="loading-bone" skullet-bar></span></span><span class="folder-loading-pill" aria-hidden="true"><span class="loading-bone" skullet-bar></span></span><span class="folder-loading-pill" aria-hidden="true"><span class="loading-bone" skullet-bar></span></span><span class="folder-loading-pill" aria-hidden="true"><span class="loading-bone" skullet-bar></span></span><span class="folder-loading-pill" aria-hidden="true"><span class="loading-bone" skullet-bar></span></span><span class="folder-loading-pill" aria-hidden="true"><span class="loading-bone" skullet-bar></span></span>
+</div></div>
 <div class="library-tools">
+<div id="search-slot" class="header-slot" data-header-slot="search" data-loading="true" inert aria-busy="true">
 <div id="search-control" class="search-control" data-open="false" data-motion="instant" hidden>
 <div id="search-trigger"></div>
 <form id="library-search" class="library-search" role="search" aria-hidden="true" inert>
@@ -16,7 +19,9 @@
 </div>
 </form>
 </div>
-<div id="theme-control" class="theme-control"><button class="header-button theme-icon" type="button" data-theme-choice="dark" data-theme-toggle aria-label="Switch to dark mode" title="Switch to dark mode"><span class="theme-viewport" aria-hidden="true"><span class="theme-orbit"><span class="theme-body theme-sun"><img src="/icons/sun.svg" alt=""></span><span class="theme-body theme-moon"><img src="/icons/moon.svg" alt=""></span></span></span></button></div>
+<span class="header-loading-overlay" aria-hidden="true"><span class="loading-bone" skullet-bar></span></span>
+</div>
+<div id="theme-slot" class="header-slot" data-header-slot="theme" data-loading="true" inert aria-busy="true"><div id="theme-control" class="theme-control"><button class="header-button theme-icon" type="button" data-theme-choice="dark" data-theme-toggle aria-label="Switch to dark mode" title="Switch to dark mode"><span class="theme-viewport" aria-hidden="true"><span class="theme-orbit"><span class="theme-body theme-sun"><img src="/icons/sun.svg" alt=""></span><span class="theme-body theme-moon"><img src="/icons/moon.svg" alt=""></span></span></span></button></div><span class="header-loading-overlay" aria-hidden="true"><span class="loading-bone" skullet-bar></span></span></div>
 </div>
 </header>
 <section id="library-management" class="library-management" hidden aria-label="Library connections and settings"><a href="#" class="menu-item">Back to library</a><div class="account-panel"><p id="privacy-status">Private · Saved on this Mac</p><p id="sync-status">Loading your library…</p><div id="connection-tools"></div><a class="lab-link menu-item" href="/lab">Capture Lab</a></div></section>

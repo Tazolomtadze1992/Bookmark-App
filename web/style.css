@@ -408,3 +408,31 @@ html{scrollbar-gutter:stable}
  .loading-card .loading-bone,.media-loading[data-near="true"]>.loading-bone{animation:none}
  .image-preview.media-ready>.media-image{animation:none}
 }
+
+/* Reserve the complete header from the first paint; each group owns its readiness. */
+.header-slot{position:relative;flex:none}
+.topbar #collection-slot{width:84px;min-width:84px;height:40px}
+#search-slot,#theme-slot{width:40px;height:40px}
+#theme-slot{order:1}
+.header-loading-overlay{position:absolute;left:4px;top:4px;width:32px;height:32px;border-radius:50%;pointer-events:none}
+#collection-slot>.header-loading-overlay{left:0;width:84px;border-radius:999px}
+[data-header-slot][data-loading="true"]>:not(.header-loading-overlay){visibility:hidden}
+[data-header-slot]:not([data-loading="true"])>.header-loading-overlay{display:none}
+.header-loading-overlay .loading-bone,.folder-loading-pill .loading-bone{animation:loading-breathe 2400ms ease-in-out infinite}
+.folder-loading-pill{position:relative;display:block;flex:none;width:48px;height:40px;border-radius:999px}
+.folder-loading-pill>.loading-bone{top:4px;bottom:4px;height:auto!important}
+.folder-loading-pill:nth-child(2),.folder-loading-pill:nth-child(6){width:76px}
+.folder-loading-pill:nth-child(3){width:80px}
+.folder-loading-pill:nth-child(5){width:64px}
+[data-header-slot][data-reveal="true"]>:not(.header-loading-overlay),.folder-bar[data-reveal="true"] #folder-filters{animation:preview-reveal 140ms ease-out}
+@media(pointer:coarse){
+ .topbar #collection-slot{height:44px}
+ #search-slot,#theme-slot{width:44px;height:44px}
+ .header-loading-overlay{top:6px;left:6px}
+ #collection-slot>.header-loading-overlay{left:0}
+ .folder-loading-pill{height:44px}
+ .folder-loading-pill>.loading-bone{top:6px;bottom:6px}
+}
+@media(prefers-reduced-motion:reduce){
+ .header-loading-overlay .loading-bone,.folder-loading-pill .loading-bone,[data-header-slot][data-reveal="true"]>:not(.header-loading-overlay),.folder-bar[data-reveal="true"] #folder-filters{animation:none}
+}

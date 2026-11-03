@@ -1,11 +1,46 @@
 import {createSkeletonBox} from './skullet.js';
 import {createLoadQueue} from './load-queue.js';
+import {waitForImages,waitForFont} from './asset-readiness.js';
 
 const queue=createLoadQueue({limit:4}),previews=new Map(),nearby=new Set();
 const node=(tag,cls)=>Object.assign(document.createElement(tag),{className:cls});
 export function skeletonBox(className='loading-bone'){
  const bone=createSkeletonBox({width:'100%',height:'100%',radius:'inherit'});
  bone.className=className;bone.setAttribute('aria-hidden','true');return bone;
+}
+let headerRevision=0;
+const headerFont=waitForFont(document.fonts);
+export function beginHeaderLoading({folders=true}={}){
+ ++headerRevision;
+ for(const slot of document.querySelectorAll('[data-header-slot]')){
+  slot.hidden=false;slot.inert=true;slot.dataset.loading='true';delete slot.dataset.reveal;slot.setAttribute('aria-busy','true');
+  const overlay=slot.querySelector('.header-loading-overlay');
+  if(!overlay.dataset.skullet){overlay.replaceChildren(skeletonBox());overlay.dataset.skullet='true';}
+ }
+ if(folders)showFolderLoading();else document.querySelector('#folder-bar').hidden=true;
+}
+export async function revealHeaderControls(){
+ const revision=headerRevision;
+ await Promise.all([headerFont,waitForImages(document.querySelectorAll('[data-header-slot] img'))]);
+ if(revision!==headerRevision)return;
+ window.libraryTheme?.refresh();
+ for(const slot of document.querySelectorAll('[data-header-slot]')){
+  slot.inert=false;slot.dataset.loading='false';slot.dataset.reveal='true';slot.removeAttribute('aria-busy');
+ }
+}
+export function showFolderLoading(){
+ const bar=document.querySelector('#folder-bar'),filters=document.querySelector('#folder-filters');
+ bar.hidden=false;bar.dataset.loading='true';delete bar.dataset.reveal;filters.inert=true;filters.setAttribute('aria-busy','true');
+ if(!filters.querySelector('.folder-loading-pill')){
+  filters.replaceChildren();for(let i=0;i<6;i++){const pill=node('span','folder-loading-pill');pill.setAttribute('aria-hidden','true');pill.dataset.skullet='true';pill.append(skeletonBox());filters.append(pill);}
+ }else for(const pill of filters.querySelectorAll('.folder-loading-pill'))if(!pill.dataset.skullet){pill.replaceChildren(skeletonBox());pill.dataset.skullet='true';}
+}
+export function clearFolderLoading(){
+ const bar=document.querySelector('#folder-bar'),filters=document.querySelector('#folder-filters');
+ const wasLoading=bar.dataset.loading==='true';
+ bar.dataset.loading='false';filters.inert=false;filters.removeAttribute('aria-busy');
+ if(wasLoading){for(const pill of filters.querySelectorAll('.folder-loading-pill'))pill.remove();bar.dataset.reveal='true';}
+ return wasLoading;
 }
 // One observer for the entire collection. Only near-screen previews enter the queue.
 const observer=new IntersectionObserver(entries=>{

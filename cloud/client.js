@@ -1,10 +1,11 @@
 import {syncNotice} from '../web/sync-status.js';
 import {createClient} from '@supabase/supabase-js';
 import {readLibraryState} from './library-state.js';
-import {showLoadingGrid} from '/loading.js';
+import {showLoadingGrid,beginHeaderLoading,revealHeaderControls} from '/loading.js';
 const db=createClient(SUPABASE_URL,SUPABASE_KEY);
 let user;
 const main=document.querySelector('main');
+beginHeaderLoading();
 // This shell contains no saved data. Private reads still wait for getUser below.
 main.hidden=false;showLoadingGrid(document.querySelector('#captures'),'x_post');
 document.querySelector('#loading-status').textContent='Loading your library';
@@ -18,14 +19,14 @@ const email=document.createElement('input');email.type='email';email.required=tr
 const submit=document.createElement('button');submit.type='submit';submit.textContent='Email me a sign-in link';
 login.append(title,description,email,submit,notice);
 login.addEventListener('submit',async e=>{e.preventDefault();submit.disabled=true;notice.textContent='Sending your sign-in link…';const {error}=await db.auth.signInWithOtp({email:email.value.trim(),options:{emailRedirectTo:location.origin+'/'}});notice.textContent=error?error.message:'Check your email and open the sign-in link on this device.';submit.disabled=false;});
-function signedOut(){main.hidden=true;document.querySelector('nav').hidden=true;labLink.hidden=true;document.querySelector('#library-management').hidden=true;document.querySelector('#folder-bar').hidden=true;document.body.append(login);}
+function signedOut(){main.hidden=true;document.querySelector('nav').hidden=true;document.querySelector('#search-slot').hidden=true;labLink.hidden=true;document.querySelector('#library-management').hidden=true;document.querySelector('#folder-bar').hidden=true;revealHeaderControls();document.body.append(login);}
 const initial=await db.auth.getSession();
 if(initial.error)notice.textContent=initial.error.message;
 if(!initial.data.session){signedOut();await new Promise(resolve=>{const {data:{subscription}}=db.auth.onAuthStateChange((event,session)=>{if(session){subscription.unsubscribe();resolve();}});});}
 const verified=await db.auth.getUser();
 if(verified.error||!verified.data.user){await db.auth.signOut({scope:'local'});location.replace('/');throw Error('Sign in again to continue.');}
 user=verified.data.user;
-login.remove();main.hidden=false;document.querySelector('nav').hidden=false;labLink.hidden=false;
+login.remove();main.hidden=false;beginHeaderLoading();labLink.hidden=false;
 labLink.textContent='Sign out';labLink.setAttribute('aria-label','Sign out');labLink.href='#';labLink.addEventListener('click',async e=>{e.preventDefault();const {error}=await db.auth.signOut({scope:'local'});if(error){document.querySelector('#status').textContent=error.message;return;}location.replace('/');});
 personalLabel.textContent='Private · Saved in your account';
 const reply=data=>new Response(JSON.stringify(data),{headers:{'Content-Type':'application/json'}});

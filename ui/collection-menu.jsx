@@ -1,4 +1,4 @@
-import React, {forwardRef, useEffect, useState} from 'react';
+import React, {forwardRef, useEffect, useLayoutEffect, useState} from 'react';
 import {createPortal} from 'react-dom';
 import {createRoot} from 'react-dom/client';
 import {Tooltip,TooltipTrigger,TooltipContent,TooltipProvider} from './tooltip.jsx';
@@ -27,7 +27,7 @@ function CollectionChoice({id,label,icon,selected,onChange}){
 }
 
 function ThemeChoice(){
- useEffect(()=>{window.libraryTheme.refresh();},[]);
+ useLayoutEffect(()=>{window.libraryTheme.refresh();},[]);
  return <Tooltip>
   <TooltipTrigger asChild>
    <HeaderButton className="theme-icon" data-theme-toggle aria-label="Toggle theme" aria-keyshortcuts="D"
@@ -62,12 +62,13 @@ function SearchChoice({onSearchOpen}){
  </Tooltip>;
 }
 
-function CollectionMenu({initialValue,onValueChange,themeContainer,searchContainer,onSearchOpen}){
+function CollectionMenu({initialValue,onValueChange,themeContainer,searchContainer,onSearchOpen,onReady}){
  const [value,setValue]=useState(initialValue);
  const [animated,setAnimated]=useState(false);
  const change=(next,event)=>{const animate=event.detail>0;setAnimated(animate);setValue(next);onValueChange(next,{animate});};
  useEffect(()=>{
   const onKey=event=>{
+   if(document.querySelector('#collection-slot')?.inert)return;
    const action=headerShortcut(event,{modalOpen:!!document.querySelector('dialog[open]')});
    if(!action)return;
    event.preventDefault();
@@ -77,14 +78,15 @@ function CollectionMenu({initialValue,onValueChange,themeContainer,searchContain
   document.addEventListener('keydown',onKey);
   return ()=>document.removeEventListener('keydown',onKey);
  },[value]);
+ useLayoutEffect(()=>{onReady?.();},[]);
  return <TooltipProvider delayDuration={350} skipDelayDuration={700}><div className="collection-switcher" role="group" aria-label="Library collection" data-motion={animated?'animated':'instant'}>
   <span className="collection-selection" aria-hidden="true" style={{transform:`translateX(${collections.findIndex(([id])=>id===value)*40}px)`}}/>
   {collections.map(([id,label,icon])=><CollectionChoice key={id} id={id} label={label} icon={icon} selected={value===id} onChange={change}/>)}
  </div>{createPortal(<SearchChoice onSearchOpen={onSearchOpen}/>,searchContainer)}{createPortal(<ThemeChoice/>,themeContainer)}</TooltipProvider>;
 }
 
-export function mountCollectionMenu(container,{value,onValueChange,themeContainer,searchContainer,onSearchOpen}){
+export function mountCollectionMenu(container,{value,onValueChange,themeContainer,searchContainer,onSearchOpen,onReady}){
  themeContainer.replaceChildren();
  searchContainer.replaceChildren();
- createRoot(container).render(<CollectionMenu initialValue={value} onValueChange={onValueChange} themeContainer={themeContainer} searchContainer={searchContainer} onSearchOpen={onSearchOpen}/>);
+ createRoot(container).render(<CollectionMenu initialValue={value} onValueChange={onValueChange} themeContainer={themeContainer} searchContainer={searchContainer} onSearchOpen={onSearchOpen} onReady={onReady}/>);
 }
