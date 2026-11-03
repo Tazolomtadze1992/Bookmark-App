@@ -9,7 +9,7 @@ trailing circular chevron changes. Its opacity goes from 0 to 1, scale from
 `cubic-bezier(0,0,0.2,1)`. The thumbnail frame is static. The implementation
 matches that hint rather than inventing a thumbnail zoom or lift.
 
-- The hint uses a shared Central Icons chevron-right-medium SVG. The circle
+- The hint uses the shared chevron SVG supplied by the owner. The circle
   reuses the category surface token for both themes.
 - The title reserves the hint's width, keeping the thumbnail, title row and
   neighboring cards stationary. Long titles truncate inside their text span.
