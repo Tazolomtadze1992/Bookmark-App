@@ -2,6 +2,7 @@ import {build} from 'esbuild';
 import {pathToFileURL} from 'node:url';
 
 export async function buildNavigation(){
+ await build({entryPoints:['ui/theme-motion-runtime.js'],bundle:true,format:'iife',outfile:'web/theme-motion.js',minify:true,define:{'process.env.NODE_ENV':'"production"'}});
  await build({entryPoints:['web/skullet-source.js'],bundle:true,format:'esm',outfile:'web/skullet.js',minify:true});
  await build({entryPoints:['ui/collection-menu.jsx'],bundle:true,format:'esm',outfile:'web/collection-menu.js',minify:true,define:{'process.env.NODE_ENV':'"production"'}});
 }

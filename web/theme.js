@@ -3,6 +3,7 @@
   const key = 'reference-library-theme';
   const choices = ['system', 'light', 'dark'];
   const system = matchMedia('(prefers-color-scheme: dark)');
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)');
   const normalize = value => choices.includes(value) ? value : 'system';
   let preference = 'system';
   try { preference = normalize(localStorage.getItem(key)); } catch {}
@@ -28,23 +29,13 @@
     });
   }
   function updateIcon(button, theme, animate) {
-    const orbit = button.querySelector('.theme-orbit');
-    if (!orbit) return;
-    let state = iconStates.get(button);
-    if (!state) {
-      state = {theme, angle: theme === 'dark' ? 180 : 0};
-      iconStates.set(button, state);
-      button.dataset.themeMotion = 'instant';
-    } else if (state.theme !== theme) {
-      // Continue clockwise after settling. If reversed in flight, retrace the
-      // existing arc instead of making the icons take another full revolution.
-      const moving = orbit.getAnimations?.().some(animation => animation.playState === 'running');
-      const angle = moving && state.fromTheme === theme ? state.fromAngle : state.angle + 180;
-      Object.assign(state, {fromAngle: state.angle, fromTheme: state.theme, angle, theme});
-      button.dataset.themeMotion = animate ? 'orbit' : 'instant';
-    } else return;
-    orbit.style.transform = `rotate(${state.angle}deg)`;
-    for (const body of button.querySelectorAll('.theme-body')) body.style.transform = `rotate(${-state.angle}deg)`;
+    if (!globalThis.createThemeIconMotion) return;
+    let controller = iconStates.get(button);
+    if (!controller) {
+      controller = globalThis.createThemeIconMotion(button,{reducedMotion:()=>reduced.matches});
+      iconStates.set(button,controller);
+    }
+    controller.setTheme(theme,{animate});
   }
   function apply({animate = false} = {}) {
     commitTheme(preference === 'system'
@@ -71,6 +62,7 @@
   };
   apply();
   system.addEventListener('change', apply);
+  reduced.addEventListener('change', apply);
   addEventListener('storage', event => {
     if (event.key === key || event.key === null) {
       preference = normalize(event.newValue);

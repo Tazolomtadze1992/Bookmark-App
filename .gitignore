@@ -19,5 +19,6 @@ venv/
 dist/
 web/collection-menu.js
 web/skullet.js
+web/theme-motion.js
 .vercel/
 supabase/.temp/
