@@ -2,11 +2,13 @@ import {createClient} from 'npm:@supabase/supabase-js@2.117.2';
 import {SCOPES,newPrefix,projectPost,normalise,digest} from './logic.js';
 import {updateFolders,folderSyncDue} from './folders.js';
 import {XRequestError,retryTime,failurePatch,bookmarkIds,readBookmarkWindow} from './sync-policy.js';
+import {validateBrowserFolders,projectBrowserFolders} from './browser-folders.js';
 const ORIGIN='https://bookmark-app-nu-seven.vercel.app';
 const URL_BASE=Deno.env.get('SUPABASE_URL')!;
 const db=createClient(URL_BASE,Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,{auth:{persistSession:false,autoRefreshToken:false}});
 const callback=URL_BASE+'/functions/v1/library-service/oauth/callback';
 async function rpc(action:string,owner:string|null=null,payload:object={}){const {data,error}=await db.rpc('library_worker',{action,owner,payload});if(error)throw Error(error.message);return data;}
+async function folderRpc(action:string,owner:string|null=null,payload:object={}){const {data,error}=await db.rpc('library_folder_worker',{action,owner,payload});if(error)throw Error(error.message);return data;}
 function response(body:unknown,status=200){return new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json','Cache-Control':'no-store','Access-Control-Allow-Origin':ORIGIN,'Access-Control-Allow-Headers':'authorization,apikey,content-type,x-device-token','Access-Control-Allow-Methods':'POST,OPTIONS','Vary':'Origin'}});}
 async function xRequest(path:string,token?:string,form?:Record<string,string>){
  const r=await fetch('https://api.x.com'+path,{method:form?'POST':'GET',redirect:'error',signal:AbortSignal.timeout(15000),headers:form?{'Content-Type':'application/x-www-form-urlencoded'}:{Authorization:'Bearer '+token},body:form?new URLSearchParams(form):undefined});
@@ -31,7 +33,7 @@ async function writePost(owner:string,post:any,includes:any,refresh=false){
  const write=existing?db.from('library_references').update(row).eq('user_id',owner).eq('id',id).is('deleted_at',null):db.from('library_references').upsert(row,{onConflict:'user_id,id',ignoreDuplicates:true});
  const {error:writeError}=await write;if(writeError)throw Error('Could not save the X reference. Checkpoint preserved.');
 }
-async function run(owner:string,manual=false,refreshId?:string,foldersOnly=false){
+async function run(owner:string,manual=false,refreshId?:string,foldersOnly=false,browserSetup=false){
  const work=await rpc('claim',owner,{manual});if(!work)return {message:'A check is already running or was just completed.'};
  const {lease,state}=work;let creds=work.credentials,rotating=false;
  const finish=(patch:object)=>rpc('finish',owner,{lease,state:patch});
@@ -45,8 +47,16 @@ async function run(owner:string,manual=false,refreshId?:string,foldersOnly=false
    creds=credentials(token,creds.client_id,creds);await rpc('credentials',owner,{lease,credentials:creds});rotating=false;
   }
   const get=async(path:string,units:number)=>{await rpc('reserve',owner,{lease,units});return xRequest(path,creds.access_token);};
+  if(browserSetup){
+   const identity=await get('/2/users/me',10),handle=identity.data?.username;
+   if(identity.data?.id!==state.user_id||typeof handle!=='string'||!/^\w{1,15}$/.test(handle))throw Error('Connect the same X account before enabling automatic folders.');
+   const token=[...crypto.getRandomValues(new Uint8Array(32))].map(v=>v.toString(16).padStart(2,'0')).join('');
+   await folderRpc('create',owner,{hash:await digest(token),x_user_id:identity.data.id,account_handle:handle.toLowerCase()});await finish({});
+   return {token,account_handle:handle.toLowerCase()};
+  }
   const lookup=async(list:string[])=>get('/2/tweets?'+new URLSearchParams({ids:list.join(','),'tweet.fields':'text,author_id,created_at,attachments',expansions:'attachments.media_keys,author_id','media.fields':'type,url,preview_image_url,variants,width,height,duration_ms,alt_text','user.fields':'name,username,profile_image_url'}),list.length*15);
   const syncFolders=async(force=false)=>{
+   if(state.browser_folder_sync_enabled)return {};
    if(!folderSyncDue(state,force))return {};
    const knownIds:string[]=[],postAliases:Record<string,string[]>={};
    for(let offset=0;;offset+=500){
@@ -63,6 +73,7 @@ async function run(owner:string,manual=false,refreshId?:string,foldersOnly=false
    return updateFolders({state,force,knownIds,postAliases,get});
   };
   if(foldersOnly){
+   if(state.browser_folder_sync_enabled){await finish({});return {message:'Folder checks run automatically in Chrome.'};}
    const patch=await syncFolders(true);
    await finish(patch);
    return {message:patch.folder_error||'X folders synced.',ok:!patch.folder_error};
@@ -126,7 +137,11 @@ Deno.serve(async req=>{
    EdgeRuntime.waitUntil(task);return response({accepted:true});
   }
   let owner:string;
-  if(route==='/capture'){
+  let folderDevice:any;
+  if(route.startsWith('/folders/browser/')&&!['/folders/browser/connect','/folders/browser/revoke'].includes(route)){
+   const token=req.headers.get('x-device-token')||'';if(!/^[a-f0-9]{64}$/.test(token))return response({error:'Connect automatic folders from your library.'},401);
+   folderDevice=await folderRpc('auth',null,{hash:await digest(token)});if(!folderDevice?.user_id)return response({error:'Automatic folder connection expired. Reconnect it from your library.'},401);owner=folderDevice.user_id;folderDevice.hash=await digest(token);
+  }else if(route==='/capture'){
    const token=req.headers.get('x-device-token')||'';if(!/^[a-f0-9]{64}$/.test(token))return response({error:'Connect this extension from your library.'},401);
    const device=await rpc('device_auth',null,{hash:await digest(token)});if(!device?.user_id)return response({error:'Extension connection expired or revoked. Reconnect it from your library.'},401);owner=device.user_id;
   }else{
@@ -135,8 +150,21 @@ Deno.serve(async req=>{
   if(Number(req.headers.get('content-length'))>4500000)return response({error:'Request too large'},413);
   const raw=await req.text();if(raw.length>4500000)return response({error:'Request too large'},413);const body=raw?JSON.parse(raw):{};
   if(route==='/capture')return response(await capture(owner,body));
+  if(route==='/folders/browser/connect')return response(await run(owner,true,undefined,false,true));
+  if(route==='/folders/browser/revoke')return response(await folderRpc('revoke',owner));
+  if(folderDevice){
+   if(route==='/folders/browser/disconnect')return response(await folderRpc('device_revoke',owner,{hash:folderDevice.hash}));
+   if(route==='/folders/browser/error')return response(await folderRpc('error',owner,{hash:folderDevice.hash,message:String(body.message||'Folder check interrupted.').slice(0,300)}));
+   if(!['/folders/browser/inspect','/folders/browser/apply'].includes(route))return response({error:'Unknown folder action'},404);
+   const scan=validateBrowserFolders(body,folderDevice.account_handle),records:any[]=[];
+   for(let offset=0;;offset+=500){const {data,error}=await db.from('library_references').select('id,record,metadata').eq('user_id',owner).is('deleted_at',null).order('id').range(offset,offset+499);if(error)throw Error('Could not read folder matches.');records.push(...data);if(data.length<500)break;}
+   const current=await folderRpc('context',owner,{hash:folderDevice.hash});
+   const projected=projectBrowserFolders(scan,records,current?.excluded_ids||[]);
+   if(route==='/folders/browser/inspect')return response({unmatched_ids:projected.unmatched});
+   return response(await folderRpc('apply',owner,{hash:folderDevice.hash,account_handle:scan.account_handle,snapshot:projected.snapshot,edits:projected.edits}));
+  }
   if(route==='/device'){const token=[...crypto.getRandomValues(new Uint8Array(32))].map(v=>v.toString(16).padStart(2,'0')).join('');await rpc('device_create',owner,{hash:await digest(token)});return response({token});}
-  if(route==='/device/revoke'){await rpc('device_revoke',owner);return response({ok:true});}
+  if(route==='/device/revoke'){await rpc('device_revoke',owner);await folderRpc('revoke',owner);return response({ok:true});}
   if(route==='/status')return response(await rpc('status',owner));
   if(route==='/reconnect'){
    const state=crypto.randomUUID(),verifier=(await digest(crypto.randomUUID()))+(await digest(crypto.randomUUID()));

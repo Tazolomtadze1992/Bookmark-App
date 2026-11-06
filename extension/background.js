@@ -1,5 +1,5 @@
-/* Capture only after the owner clicks the toolbar action or uses its shortcut.
-   No persistent content script, background browsing, cookies, or X credentials. */
+/* Website capture stays toolbar-only. Optional automatic X folders are handled
+   separately in folder-background.js, after a one-time X-site permission. */
 importScripts("cloud-config.js");
 let task = Promise.resolve();
 chrome.storage.local.setAccessLevel({accessLevel: "TRUSTED_CONTEXTS"}).catch(() => {});
@@ -180,3 +180,4 @@ chrome.runtime.onMessage.addListener((message,sender,reply)=>{
 chrome.alarms.create('retry-cloud',{periodInMinutes:1});
 chrome.alarms.onAlarm.addListener(alarm=>{if(alarm.name==='retry-cloud')enqueue(async()=>{const result=await flushQueue();await chrome.action.setBadgeText({text:result.remaining?'Q':''});});});
 chrome.runtime.onStartup.addListener(()=>enqueue(flushQueue));
+importScripts('folder-background.js');

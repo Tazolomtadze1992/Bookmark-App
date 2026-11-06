@@ -1,8 +1,11 @@
 {
   "manifest_version": 3,
   "name": "Reference Library",
-  "version": "0.2.0",
-  "description": "Save the current page directly to your private cloud library. Captures only when you choose to save.",
+  "version": "0.3.0",
+  "minimum_chrome_version": "120",
+  "description": "Save references and optionally keep X bookmark folders up to date while Chrome is open.",
+  "optional_host_permissions": ["https://x.com/*"],
+  "options_ui": {"page":"options.html","open_in_tab":true},
   "permissions": [
     "activeTab",
     "scripting",

@@ -33,6 +33,10 @@ Deploy the versioned migrations and `library-service` Edge Function separately t
 
 Folder reads request 20 IDs per page and reserve for that batch before contacting X. A reported X API limitation can return exactly 20 IDs without a continuation cursor. Such a response is marked incomplete and cannot replace the last complete assignments or mark unseen posts Unfiled. The partial scan stays separate in sync status for diagnosis; the app reports that folder updates are incomplete. Verified edit-history IDs in saved metadata match edited folder entries to the original saved card without adding duplicates.
 
+Optional automatic folders use the existing Chrome extension while Chrome is open and signed into the linked X account. After updating/reloading the extension, choose **Set up automatic folder sync** in Connections, then enable X access in the extension's settings tab. Complete folder scans run in a temporary inactive tab every 15 minutes and shortly after bookmark controls are used. Only folder names, post IDs and verified edit families are sent to this library; X cookies and sign-in credentials stay in Chrome. Native bookmark imports keep their existing schedule and allowance. Browser folder scans do not call the paid X API; setup verifies the linked account once through the existing allowance.
+
+Each scan checks the active X account, reads every folder to its end, verifies the folder list again, and uploads one complete snapshot. Interrupted, signed-out and wrong-account scans retain previous assignments and retry. Removing assignments requires a second matching scan. If the owner opens the temporary tab, the scan stops and leaves that tab alone. Automatic folders have a separate revocable token, with no capture, media, collection-listing or X-credential access. Turn off the feature in its settings tab or Connections; **Disconnect extensions** also revokes it.
+
 X remains a public Native App with PKCE and the read-only scopes `tweet.read users.read bookmark.read offline.access`. Its additional cloud callback is:
 
 ```text
