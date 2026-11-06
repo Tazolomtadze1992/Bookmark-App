@@ -20,13 +20,18 @@
    const href=n.querySelector('time')?.closest('a')?.getAttribute('href'),id=href?.match(/\/status\/(\d{1,25})(?:$|\/)/)?.[1];
    return id?{id,href:href.split('?')[0]}:null;
   }).filter(Boolean);
+  let renderedEnd=articles.length?Math.max(...articles.map(n=>n.getBoundingClientRect().bottom)):null;
+  // X ends a fully rendered timeline with a blank 200px cell. Count only a
+  // small, contiguous footer; estimated space beyond unmounted cards is a gap.
+  const tail=timeline?.firstElementChild?.lastElementChild,tailRect=tail?.getBoundingClientRect();
+  if(renderedEnd!==null&&tail?.getAttribute('data-testid')==='cellInnerDiv'&&!tail.textContent.trim()&&!tail.querySelector('article,[role="progressbar"]')&&tailRect.height<=240&&tailRect.top-renderedEnd>=-2&&tailRect.top-renderedEnd<=4)renderedEnd=tailRect.bottom;
   const error=!!primary&&[...primary.querySelectorAll('button')].some(n=>/^(Retry|Try again)$/.test(n.textContent.trim()));
   return {account:account?.toLowerCase(),path:location.pathname,selected:selected?.textContent.trim(),menuOpen:!!document.querySelector('[role="menu"]'),menuLoaded:menu.length>0,error,
    menu:[...document.querySelectorAll('[role="menu"] [role="menuitemradio"]')].slice(1).map(n=>n.textContent.trim()),
    posts,loading:!!document.querySelector('main [role="progressbar"],[role="menu"] [role="progressbar"]'),empty:!!document.querySelector('main [data-testid="emptyState"]'),
    history:!![...document.querySelectorAll('main h1,main h2')].find(n=>n.textContent==='Edit History'),
    visible:document.visibilityState==='visible',viewport:innerHeight,timelineName:timeline?.getAttribute('aria-label')?.replace(/^Timeline:\s*/,''),
-   timelineEnd:timeline?.getBoundingClientRect().bottom,renderedEnd:articles.length?Math.max(...articles.map(n=>n.getBoundingClientRect().bottom)):null,
+   timelineEnd:timeline?.getBoundingClientRect().bottom,renderedEnd,
    top:document.scrollingElement.scrollTop,max:document.scrollingElement.scrollHeight-document.scrollingElement.clientHeight};
  }
  async function scan(driver,{account,now=()=>Date.now(),timeout=240000}={}){

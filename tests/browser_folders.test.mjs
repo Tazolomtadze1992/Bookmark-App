@@ -51,3 +51,17 @@ test('edit-history verification links versions without changing any X content',a
  const s={account_handle:'owner',refs:{'20':'/author/status/20'},edit_families:[]};await histories(d,s,['20'],{now:()=>clock});
  assert.deepEqual(visited,['/author/status/20/history']);assert.deepEqual(s.edit_families,[['20','10']]);
 });
+
+test('the real DOM reader accepts the adjacent X footer but never bridges unrendered space',async()=>{
+ const {readFileSync}=await import('node:fs'),{runInNewContext}=await import('node:vm');
+ for(const [top,height,loading,expected] of [[501,200,false,701],[900,200,false,500],[501,600,false,500],[501,200,true,500]]){
+  const tail={getAttribute:()=> 'cellInnerDiv',textContent:'',querySelector:()=>loading?{}:null,getBoundingClientRect:()=>({top,height,bottom:top+height})};
+  const article={getBoundingClientRect:()=>({bottom:500}),querySelector:()=>({closest:()=>({getAttribute:()=>'/author/status/10'})})};
+  const timeline={querySelectorAll:()=>[article],getAttribute:()=> 'Timeline: Motion',getBoundingClientRect:()=>({bottom:top+height}),firstElementChild:{lastElementChild:tail}};
+  const primary={querySelector:()=>timeline,querySelectorAll:()=>[]};
+  const document={visibilityState:'visible',scrollingElement:{scrollTop:0,scrollHeight:1200,clientHeight:700},querySelectorAll:()=>[],querySelector:s=>s.includes('primaryColumn')?primary:s.includes('SideNav_AccountSwitcher')?{textContent:'@owner'}:null};
+  const context={document,location:{pathname:'/i/history/bookmarks/1'},innerHeight:700};
+  runInNewContext(readFileSync(new URL('../extension/folder-scanner.js',import.meta.url),'utf8'),context);
+  assert.equal(context.AutomaticFolders.domStep().renderedEnd,expected);
+ }
+});
