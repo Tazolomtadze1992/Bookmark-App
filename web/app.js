@@ -21,6 +21,16 @@ function markDetailSource(id){detailSource?.classList.remove('detail-source');de
 async function api(path,method='GET',data,options={}){const r=window.libraryAPI?await window.libraryAPI.request(path,method,data,options):await fetch(path,{method,...options,headers:{'X-Capture-Token':token,...(data?{'Content-Type':'application/json'}:{})},body:data?JSON.stringify(data):undefined});if(!r.ok){let e;try{e=await r.json();}catch{}throw Error(e?.error||'Could not reach your library.');}return r;}
 function el(tag,text,cls){const n=document.createElement(tag);if(text)n.textContent=text;if(cls)n.className=cls;return n;}
 function icon(name){const i=el('img');i.src=`/icons/${name}.svg`;i.alt='';return i;}
+function sizeImage(img,width,height,expanded=false){
+ if(!(width>0&&height>0))return;
+ img.width=width;img.height=height;
+ if(expanded){
+  // Auto-sized images otherwise use their alt text's width until src is ready.
+  // Reserve the same fitted box before measuring the shared-element entrance.
+  img.classList.add('detail-image-sized');
+  img.style.setProperty('--image-width',`${width}px`);img.style.setProperty('--image-ratio',width/height);
+ }
+}
 function btn(name,action,cls=''){const b=el('button',name,cls);b.type='button';if(name)b.setAttribute('aria-label',name);b.addEventListener('click',e=>{e.stopPropagation();Promise.resolve(action(e)).catch(error);});return b;}
 function iconButton(name,label,action,cls=''){const b=btn('',action,`icon-button ${cls}`);b.append(icon(name));b.setAttribute('aria-label',label);b.title=label;return b;}
 document.addEventListener('click',e=>{for(const menu of document.querySelectorAll('.utility-menu[open]'))if(!menu.contains(e.target))menu.open=false;});
@@ -91,8 +101,8 @@ function mediaPreview(item,scope){
  if(remote||item.has_preview){
   const img=el('img',null,'media media-image');img.alt=`Preview of ${item.kind==='x_post'?shortTitle(item):item.title}`;img.decoding='async';
   const known=metadata(item).media?.[0],source=document.querySelector(`[data-id="${item.id}"] .media-image`);
-  if(known?.width&&known?.height){img.width=known.width;img.height=known.height;}
-  else if(source?.naturalWidth){img.width=source.naturalWidth;img.height=source.naturalHeight;}
+  if(source?.naturalWidth)sizeImage(img,source.naturalWidth,source.naturalHeight,scope==='detail');
+  else if(known?.width&&known?.height)sizeImage(img,known.width,known.height,scope==='detail');
   const wrap=scope==='grid'?el('div',null,'image-preview media-loading'):null;
   if(wrap){wrap.style.aspectRatio=item.kind==='website'?'1.88':String(img.width&&img.height?img.width/img.height:1);wrap.append(img,skeletonBox());}
   const fallback=()=>{
@@ -100,7 +110,7 @@ function mediaPreview(item,scope){
    else img.replaceWith(el('div','Preview unavailable. Open the source to view this reference.','text-preview'));
   };
   loadPreview(wrap||img,item,remote,scope,value=>{
-   img.width=value.width;img.height=value.height;img.src=value.url;
+   sizeImage(img,value.width,value.height,scope==='detail');img.src=value.url;
    if(wrap){if(item.kind==='x_post')wrap.style.aspectRatio=String(value.width/value.height);revealMedia(wrap);}
   },fallback);
   img.addEventListener('error',fallback,{once:true});return wrap||img;
@@ -151,7 +161,7 @@ function albumPreview(item){
   if(media.motion)frame.append(motionPreview(item,media.motion,'detail',media.poster));
   else if(media.poster){
    const img=el('img',null,'media media-image');img.alt=media.alt||`Image ${index+1} of ${attachments.length} — ${shortTitle(item)}`;img.loading='eager';
-   if(media.width&&media.height){img.width=media.width;img.height=media.height;}
+   sizeImage(img,media.width,media.height,true);
    img.src=media.poster;
    // Only the opened album loads eagerly. Decode late neighbors before fading in their pixels.
    let disposed=false,reveal=null;

@@ -60,6 +60,8 @@ export function createDetailMotion(dialog, sourceRect, headerBottom=()=>0) {
   function geometry(from=sourceRect()){
     const target=cover(),container=primary();
     if(!from||from.bottom<=0||from.top>=innerHeight||!target||!container)return null;
+    // An unmeasured image has an alt-text box, not usable animation geometry.
+    if(target.matches('.media-image')&&!target.naturalWidth&&!target.classList.contains('detail-image-sized'))return null;
     return cardTransform(from,target.getBoundingClientRect(),container.getBoundingClientRect());
   }
   function viewportClip(from=sourceRect()) {
