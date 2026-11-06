@@ -31,6 +31,8 @@ Install pinned packages with `npm ci`. Set `PUBLIC_SUPABASE_URL` and `PUBLIC_SUP
 
 Deploy the versioned migrations and `library-service` Edge Function separately through Supabase. The existing project has these applied. Its environment supplies the service-role key; never put that key in Vercel's public variables, the browser or the extension. The function, scheduler and extension currently use this private installation's exact project/domain; update all three when deploying a different installation.
 
+Folder reads request 20 IDs per page and reserve for that batch before contacting X. A reported X API limitation can return exactly 20 IDs without a continuation cursor. Such a response is marked incomplete and cannot replace the last complete assignments or mark unseen posts Unfiled. The partial scan stays separate in sync status for diagnosis; the app reports that folder updates are incomplete. Verified edit-history IDs in saved metadata match edited folder entries to the original saved card without adding duplicates.
+
 X remains a public Native App with PKCE and the read-only scopes `tweet.read users.read bookmark.read offline.access`. Its additional cloud callback is:
 
 ```text

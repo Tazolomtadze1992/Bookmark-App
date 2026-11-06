@@ -23,11 +23,11 @@ function credentials(token:any,client_id:string,previous:any={}){
 const ids=bookmarkIds;
 async function writePost(owner:string,post:any,includes:any,refresh=false){
  const url=`https://x.com/i/status/${post.id}`,id=(await digest(url)).slice(0,32),now=new Date().toISOString();
- const {data:existing,error}=await db.from('library_references').select('id,record,deleted_at').eq('user_id',owner).eq('id',id).maybeSingle();if(error)throw Error('Could not read the saved reference.');
+ const {data:existing,error}=await db.from('library_references').select('id,record,metadata,deleted_at').eq('user_id',owner).eq('id',id).maybeSingle();if(error)throw Error('Could not read the saved reference.');
  if(existing?.deleted_at)return; // A later sync never resurrects a deleted card.
  if(existing&&!refresh)return;
  const record=existing?{...existing.record,updated_at:now}:{id,url,post_id:post.id,kind:'x_post',title:String(post.text||'').slice(0,500),description:String(post.text||'').slice(0,10000),created_at:now,updated_at:now,capture_origin:'x_bookmark',has_preview:false,fixture:false,capture_attempts:0};
- const row={user_id:owner,id,record,saved_at:now,...projectPost(post,includes)};
+ const row={user_id:owner,id,record,saved_at:now,...projectPost(post,includes,existing?.metadata)};
  const write=existing?db.from('library_references').update(row).eq('user_id',owner).eq('id',id).is('deleted_at',null):db.from('library_references').upsert(row,{onConflict:'user_id,id',ignoreDuplicates:true});
  const {error:writeError}=await write;if(writeError)throw Error('Could not save the X reference. Checkpoint preserved.');
 }
@@ -48,14 +48,19 @@ async function run(owner:string,manual=false,refreshId?:string,foldersOnly=false
   const lookup=async(list:string[])=>get('/2/tweets?'+new URLSearchParams({ids:list.join(','),'tweet.fields':'text,author_id,created_at,attachments',expansions:'attachments.media_keys,author_id','media.fields':'type,url,preview_image_url,variants,width,height,duration_ms,alt_text','user.fields':'name,username,profile_image_url'}),list.length*15);
   const syncFolders=async(force=false)=>{
    if(!folderSyncDue(state,force))return {};
-   const knownIds:string[]=[];
+   const knownIds:string[]=[],postAliases:Record<string,string[]>={};
    for(let offset=0;;offset+=500){
-    const {data,error}=await db.from('library_references').select('record').eq('user_id',owner).is('deleted_at',null).order('id').range(offset,offset+499);
+    const {data,error}=await db.from('library_references').select('record,metadata').eq('user_id',owner).is('deleted_at',null).order('id').range(offset,offset+499);
     if(error)throw Error('Could not read references for folder matching.');
-    for(const row of data)if(row.record.kind==='x_post'&&row.record.post_id)knownIds.push(row.record.post_id);
+    for(const row of data)if(row.record.kind==='x_post'&&row.record.post_id){
+     knownIds.push(row.record.post_id);
+     for(const id of Array.isArray(row.metadata?.edit_history_tweet_ids)?row.metadata.edit_history_tweet_ids:[]){
+      if(typeof id==='string'&&/^\d{1,25}$/.test(id))(postAliases[id]??=[]).push(row.record.post_id);
+     }
+    }
     if(data.length<500)break;
    }
-   return updateFolders({state,force,knownIds,get});
+   return updateFolders({state,force,knownIds,postAliases,get});
   };
   if(foldersOnly){
    const patch=await syncFolders(true);

@@ -9,6 +9,11 @@ test('missing anchors, overlapping pages, and changed order fail closed',()=>{
  assert.throws(()=>newPrefix(['3','2'],['2','3'],[],[]),/order/);
 });
 test('checkpoint retry does not reimport previously seen IDs',()=>assert.deepEqual(newPrefix(['new','anchor'],['anchor'],[],['new']),[]));
+test('post projection retains valid edit versions for folder identity matching',()=>{
+ assert.deepEqual(projectPost({id:'10',edit_history_tweet_ids:['10','20','20','unsafe',null,21]}).metadata.edit_history_tweet_ids,['10','20']);
+ assert.deepEqual(projectPost({id:'10',edit_history_tweet_ids:'invalid'}).metadata.edit_history_tweet_ids,['10']);
+ assert.deepEqual(projectPost({id:'10'}, {}, {edit_history_tweet_ids:['20','unsafe']}).metadata.edit_history_tweet_ids,['10','20'],'refreshing media preserves an already verified edit family');
+});
 test('media quality chooses the best source under 12 Mbps and rejects foreign URLs',()=>{
  const post={id:'1',author_id:'u',attachments:{media_keys:['m']}};
  const includes={users:[{id:'u',name:'Author',profile_image_url:'https://evil.test/avatar'}],media:[{media_key:'m',width:2560,height:1440,type:'video',variants:[{content_type:'video/mp4',bit_rate:100000,url:'https://evil.test/low.mp4'},{content_type:'video/mp4',bit_rate:8000000,url:'https://video.twimg.com/good.mp4'},{content_type:'video/mp4',bit_rate:25000000,url:'https://video.twimg.com/4k.mp4'}]}]};

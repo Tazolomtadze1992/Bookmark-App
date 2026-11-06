@@ -9,7 +9,7 @@ export function newPrefix(ids,anchors,excluded,seen){
  return ids.slice(0,end<0?ids.length:end).filter(id=>!excluded.includes(id)&&!seen.includes(id));
 }
 export function safeMedia(value,host){try{const u=new URL(value);return u.protocol==='https:'&&u.hostname===host&&!u.username&&!u.password&&!u.port?u.href:null;}catch{return null;}}
-export function projectPost(post,includes={}){
+export function projectPost(post,includes={},previousMetadata={}){
  const user=(includes.users||[]).find(u=>u.id===post.author_id)||{};
  const attachments=(post.attachments?.media_keys||[]).map(key=>{
   const media=(includes.media||[]).find(m=>m.media_key===key);
@@ -22,7 +22,8 @@ export function projectPost(post,includes={}){
    poster:safeMedia(media.type==='photo'?media.url:media.preview_image_url,'pbs.twimg.com')};
  });
  const first=attachments[0]||{};
- return {motion:first.motion||null,poster:first.poster||null,metadata:{media:attachments,text:String(post.text||'').slice(0,10000),published_at:post.created_at,author_name:String(user.name||'').slice(0,300),author_handle:String(user.username||'').slice(0,100),avatar:safeMedia(user.profile_image_url,'pbs.twimg.com')||''}};
+ const editHistory=[...new Set([post.id,...(Array.isArray(post.edit_history_tweet_ids)?post.edit_history_tweet_ids:[]),...(Array.isArray(previousMetadata?.edit_history_tweet_ids)?previousMetadata.edit_history_tweet_ids:[])].filter(id=>typeof id==='string'&&/^\d{1,25}$/.test(id)))].slice(0,10);
+ return {motion:first.motion||null,poster:first.poster||null,metadata:{media:attachments,edit_history_tweet_ids:editHistory,text:String(post.text||'').slice(0,10000),published_at:post.created_at,author_name:String(user.name||'').slice(0,300),author_handle:String(user.username||'').slice(0,100),avatar:safeMedia(user.profile_image_url,'pbs.twimg.com')||''}};
 }
 export function normalise(value){
  if(typeof value!=='string'||value.length>4096)throw Error('Invalid source URL.');

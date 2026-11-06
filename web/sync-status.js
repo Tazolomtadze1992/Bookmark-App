@@ -7,5 +7,5 @@ export function syncNotice(b,cloudError,now=Date.now()/1000){
  if(b.sync_issue==='retry')return `X temporarily unavailable · Retrying in ${minutes} min`;
  if(next&&now>next+1200)return 'X sync is overdue — open Connections';
  const last=b.last_check?`Checked ${Math.max(0,Math.floor((now-b.last_check)/60))} min ago`:'Waiting for first check';
- return `${last} · ${next<=now?'Checking shortly':`Next check in ${minutes} min`}${b.folder_error?' · Folder updates delayed':''}`;
+ return `${last} · ${next<=now?'Checking shortly':`Next check in ${minutes} min`}${b.folder_sync_issue==='partial'?' · X folder updates incomplete':b.folder_error?' · Folder updates delayed':''}`;
 }

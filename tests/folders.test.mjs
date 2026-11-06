@@ -2,16 +2,17 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFolderSnapshot,updateFolders,folderSyncDue} from '../supabase/functions/library-service/folders.js';
 import {folderOptions,inFolder,toggleFolder,validFolderSelection} from '../web/folders.js';
+import {syncNotice} from '../web/sync-status.js';
 const page = (data,next) => ({data,meta:next?{next_token:next}:{}});
 const folder = (id,name) => ({id,name});
 const post = id => ({id});
-function transport(pages){let i=0;const calls=[];return {calls,get:async(path,units)=>{calls.push({path,units});assert.equal(units,50);assert.ok(i<pages.length,'unexpected request');const value=pages[i++];if(value instanceof Error)throw value;return value;}};}
+function transport(pages){let i=0;const calls=[];return {calls,get:async(path,units)=>{calls.push({path,units});assert.equal(units,100);assert.ok(i<pages.length,'unexpected request');const value=pages[i++];if(value instanceof Error)throw value;return value;}};}
 test('all folder and membership pages are read; only already-saved post IDs persist',async()=>{
  const io=transport([page([folder('1','Motion')],'folders-2'),page([folder('2','UI')]),page([post('10'),post('900')],'posts-2'),page([post('11')]),page([post('11')])]);
  const s=await readFolderSnapshot({...io,userId:'99',knownIds:['10','11','12'],now:()=>123000});
- assert.deepEqual(s.folders,[{id:'1',name:'Motion',post_ids:['10','11']},{id:'2',name:'UI',post_ids:['11']}]);
- assert.equal(s.synced_at,123);assert.equal(io.calls[1].path,'/2/users/99/bookmarks/folders?max_results=10&pagination_token=folders-2');
- assert.equal(io.calls[3].path,'/2/users/99/bookmarks/folders/1?max_results=10&pagination_token=posts-2');
+ assert.deepEqual(s.folders.map(({id,name,post_ids})=>({id,name,post_ids})),[{id:'1',name:'Motion',post_ids:['10','11']},{id:'2',name:'UI',post_ids:['11']}]);
+ assert.equal(s.synced_at,123);assert.equal(io.calls[1].path,'/2/users/99/bookmarks/folders?max_results=20&pagination_token=folders-2');
+ assert.equal(io.calls[3].path,'/2/users/99/bookmarks/folders/1?max_results=20&pagination_token=posts-2');
  assert.equal(inFolder({post_id:'900'},'1',s),false); // historical/unsaved IDs cannot enter the library
  assert.equal(inFolder({post_id:'11'},'2',s),true);
  assert.equal(inFolder({post_id:'12'},'unfiled',s),true);
@@ -21,7 +22,7 @@ test('rename, move, membership removal, and deleted folder replace the complete 
  const previous={folders:[{id:'1',name:'Old name',post_ids:['10']},{id:'2',name:'Removed',post_ids:['11']}],covered_ids:['10','11'],synced_at:1};
  const io=transport([page([folder('1','Design-eng')]),page([post('11')])]);
  const patch=await updateFolders({state:{user_id:'99',folder_snapshot:previous},knownIds:['10','11'],...io,now:()=>4000000});
- assert.deepEqual(patch.folder_snapshot.folders,[{id:'1',name:'Design-eng',post_ids:['11']}]);
+ assert.deepEqual(patch.folder_snapshot.folders.map(({id,name,post_ids})=>({id,name,post_ids})),[{id:'1',name:'Design-eng',post_ids:['11']}]);
  assert.equal(inFolder({post_id:'10'},'unfiled',patch.folder_snapshot),true);
  assert.equal(previous.folders.length,2);
 });
@@ -39,9 +40,33 @@ test('failed/partial/error responses keep previous snapshot and do not change bo
  }
 });
 test('repeated page tokens, duplicate IDs, oversized responses and scan limits fail closed',async()=>{
- for(const pages of [[page([folder('1','M')],'repeat'),page([folder('2','N')],'repeat')],[page([folder('1','M')],'next'),page([folder('1','M')])],[page(Array.from({length:11},(_,i)=>folder(String(i),'M')))]])await assert.rejects(readFolderSnapshot({...transport(pages),userId:'99',knownIds:[]}));
+ for(const pages of [[page([folder('1','M')],'repeat'),page([folder('2','N')],'repeat')],[page([folder('1','M')],'next'),page([folder('1','M')])],[page(Array.from({length:21},(_,i)=>folder(String(i),'M')))]])await assert.rejects(readFolderSnapshot({...transport(pages),userId:'99',knownIds:[]}));
  await assert.rejects(readFolderSnapshot({...transport([page([folder('1','M')])]),userId:'99',knownIds:[],maxRequests:1}),/limit/);
  let clock=0;await assert.rejects(readFolderSnapshot({...transport([]),userId:'99',knownIds:[],now:()=>clock+=50000}),/limit/);
+});
+test('twenty-post batches are accepted and all continuation pages are matched',async()=>{
+ const ids=Array.from({length:40},(_,i)=>String(100+i));
+ const io=transport([page([folder('1','Motion')]),page(ids.slice(0,20).map(post),'next'),page(ids.slice(20).map(post))]);
+ const snapshot=await readFolderSnapshot({...io,userId:'99',knownIds:ids});
+ assert.equal(snapshot.complete,true);assert.deepEqual(snapshot.folders[0].post_ids,ids);
+ assert.equal(snapshot.folders[0].source_count,40);
+});
+test('a capped folder cannot replace complete assignments or mark omitted posts Unfiled',async()=>{
+ const ids=Array.from({length:21},(_,i)=>String(100+i)),previous={folders:[{id:'1',name:'Motion',post_ids:ids}],covered_ids:ids,synced_at:1};
+ const patch=await updateFolders({state:{user_id:'99',folder_snapshot:previous},knownIds:ids,...transport([page([folder('1','Motion')]),{data:ids.slice(0,20).map(post)}])});
+ assert.equal(patch.folder_snapshot,undefined);assert.equal(patch.folder_sync_issue,'partial');
+ assert.deepEqual(patch.folder_partial_snapshot.covered_ids,[]);assert.equal(patch.folder_partial_snapshot.folders[0].post_ids.length,20);
+ assert.equal(previous.folders[0].post_ids.length,21);
+ assert.match(syncNotice({enabled:true,...patch}),/X folder updates incomplete/);
+});
+test('a complete refresh clears the previous API limitation and partial result',async()=>{
+ const patch=await updateFolders({state:{user_id:'99',folder_sync_issue:'partial'},force:true,knownIds:['10'],...transport([page([folder('1','Motion')]),page([post('10')])])});
+ assert.equal(patch.folder_snapshot.complete,true);assert.equal(patch.folder_sync_issue,'');assert.equal(patch.folder_partial_snapshot,null);assert.equal(patch.folder_error,'');
+});
+test('edited post IDs resolve to saved cards and never import unknown aliases',async()=>{
+ const snapshot=await readFolderSnapshot({...transport([page([folder('1','Motion')]),page([post('20'),post('10'),post('99')])]),userId:'99',knownIds:['10','11'],postAliases:{'20':['10','11','900'],'99':['901']}});
+ assert.deepEqual(snapshot.folders[0].post_ids,['10','11']);
+ assert.equal(snapshot.folders[0].source_count,3);assert.equal(inFolder({post_id:'10'},'1',snapshot),true);
 });
 test('automatic folder reads are daily; explicit sync/new bookmarks can force a refresh',async()=>{
  assert.equal(folderSyncDue({folder_last_attempt:100},false,86499),false);assert.equal(folderSyncDue({folder_last_attempt:100},false,86500),true);assert.equal(folderSyncDue({folder_last_attempt:100},true,101),true);
