@@ -3,9 +3,9 @@ import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 import {validateBrowserFolders,projectBrowserFolders} from '../supabase/functions/library-service/browser-folders.js';
 const {scan,histories}=createRequire(import.meta.url)('../extension/folder-scanner.js');
-const body=()=>({account_handle:'Owner',observed_at:100,complete:true,folders:[{id:'1',name:'Motion',post_ids:['10','20','999'],complete:true}]});
+const body=()=>({account_handle:'Owner',render_check:2,observed_at:100,complete:true,folders:[{id:'1',name:'Motion',post_ids:['10','20','999'],complete:true}]});
 test('wrong accounts, partial scans, stale uploads and invalid IDs cannot replace assignments',()=>{
- for(const change of [{account_handle:'other'},{complete:false},{observed_at:-1000},{folders:[{id:'bad',name:'Motion',post_ids:[],complete:true}]},{folders:[{id:'1',name:'Motion',post_ids:['bad'],complete:true}]}])assert.throws(()=>validateBrowserFolders({...body(),...change},'owner',100));
+ for(const change of [{render_check:undefined},{account_handle:'other'},{complete:false},{observed_at:-1000},{folders:[{id:'bad',name:'Motion',post_ids:[],complete:true}]},{folders:[{id:'1',name:'Motion',post_ids:['bad'],complete:true}]}])assert.throws(()=>validateBrowserFolders({...body(),...change},'owner',100));
  assert.equal(validateBrowserFolders(body(),'owner',100).account_handle,'owner');
 });
 test('browser scans categorize saved cards only, retain multi-folder membership and resolve verified edits',()=>{
@@ -34,6 +34,17 @@ test('wrong account, logout, stalled loading and folder changes stop the whole s
 });
 test('deleting every folder produces an explicit complete empty list',async()=>{
  const d=fakeDriver({empty:true});const result=await scan(d,{account:'owner',now:d.now});assert.deepEqual(result.folders,[]);
+});
+test('blank virtualized space and hidden pages cannot be mistaken for a complete folder',async()=>{
+ for(const geometry of [{visible:false},{renderedEnd:-100,timelineEnd:700,viewport:700}]){
+  const d=fakeDriver(),step=d.step;d.step=async(...args)=>({...await step(...args),...geometry});
+  await assert.rejects(scan(d,{account:'owner',now:d.now}),/paused rendering|did not render all/);
+ }
+});
+test('a slow virtualized render is awaited before scrolling beyond the rendered cards',async()=>{
+ const d=fakeDriver(),step=d.step;let waiting=0;
+ d.step=async(...args)=>{const page=await step(...args);if(page.posts.length&&waiting++<4)return {...page,renderedEnd:-100,timelineEnd:700,viewport:700};return page;};
+ const result=await scan(d,{account:'owner',now:d.now});assert.equal(result.folders[0].post_ids.length,29);assert.equal(result.render_check,2);
 });
 test('edit-history verification links versions without changing any X content',async()=>{
  let clock=0;const visited=[];const d={navigate:async path=>visited.push(path),pause:async ms=>{clock+=ms;},step:async()=>({account:'owner',history:true,loading:false,posts:[{id:'20'},{id:'10'}]})};

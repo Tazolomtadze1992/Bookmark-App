@@ -10,7 +10,7 @@ async function folderCloud(action,body={}){
 async function closeFolderTab(tabId){
  if(!tabId)return;
  const {folderScanLock}=await chrome.storage.local.get('folderScanLock');if(folderScanLock?.tabId===tabId&&folderScanLock.taken)return;
- try{const tab=await chrome.tabs.get(tabId);if(!tab.active&&tab.url?.startsWith('https://x.com/'))await chrome.tabs.remove(tabId);}catch{}
+ try{const tab=await chrome.tabs.get(tabId),window=await chrome.windows.get(tab.windowId);if(!window.focused&&tab.url?.startsWith('https://x.com/'))await chrome.tabs.remove(tabId);}catch{}
 }
 async function automaticFolders(){
  const settings=await chrome.storage.local.get(['folderAutoEnabled','folderAccount','folderToken','folderScanLock','folderLastAttempt']);
@@ -21,12 +21,16 @@ async function automaticFolders(){
  const started=Date.now();let tab;
  try{
   await chrome.storage.local.set({folderLastAttempt:started,folderSyncError:'',folderRunning:true});
-  tab=await chrome.tabs.create({url:'https://x.com/i/history',active:false});
-  await chrome.storage.local.set({folderScanLock:{tabId:tab.id,started}});
+  // An inactive tab stops X's virtualized timeline from rendering. A selected
+  // tab in its own unfocused window renders without switching the user's tab.
+  const window=await chrome.windows.create({url:'https://x.com/i/history',type:'normal',focused:false,width:1100,height:850});
+  tab=window.tabs?.[0];if(!tab?.id)throw Error('Could not open the X folder check.');
+  await chrome.storage.local.set({folderScanLock:{tabId:tab.id,windowId:window.id,started}});
   const guard=async()=>{
    const current=await chrome.tabs.get(tab.id),s=await chrome.storage.local.get(['folderAutoEnabled','folderScanLock']);
    if(!s.folderAutoEnabled)throw Error('Automatic folders turned off.');
-   if(current.active||s.folderScanLock?.taken)throw Error('Folder check paused while its temporary tab is in use. It will retry.');
+   const window=await chrome.windows.get(current.windowId);
+   if(window.focused||s.folderScanLock?.taken)throw Error('Folder check paused while its temporary window is in use. It will retry.');
    if(!(current.pendingUrl||current.url)?.startsWith('https://x.com/'))throw Error('X sign-in is needed. Open X in Chrome, then the check will retry.');
    if(Date.now()-started>240000)throw Error('Folder check took too long. It will retry.');
   };
@@ -36,7 +40,7 @@ async function automaticFolders(){
    pause:ms=>new Promise(resolve=>setTimeout(resolve,ms))
   };
   const scan=await AutomaticFolders.scan(driver,{account:settings.folderAccount});
-  const upload=()=>({account_handle:scan.account_handle,complete:scan.complete,observed_at:scan.observed_at,folders:scan.folders,edit_families:scan.edit_families});
+  const upload=()=>({account_handle:scan.account_handle,complete:scan.complete,render_check:scan.render_check,observed_at:scan.observed_at,folders:scan.folders,edit_families:scan.edit_families});
   const inspection=await folderCloud('inspect',upload());
   if(inspection.unmatched_ids?.length)await AutomaticFolders.histories(driver,scan,inspection.unmatched_ids);
   await guard();const applied=await folderCloud('apply',upload());if(!applied.ok)throw Error(applied.message||'Confirming folder changes with a second check.');
@@ -87,6 +91,8 @@ chrome.runtime.onMessage.addListener((message,sender,reply)=>{
 chrome.alarms.onAlarm.addListener(alarm=>{if(['folders-periodic','folders-dirty','folders-retry'].includes(alarm.name))requestFolderRun();});
 chrome.alarms.onAlarm.addListener(alarm=>{if(alarm.name==='retry-cloud')chrome.storage.local.get('folderPendingDisconnect').then(async s=>{if(s.folderPendingDisconnect)try{await folderCloud('disconnect');await chrome.storage.local.set({folderPendingDisconnect:false});}catch(e){if(e.status===401)await chrome.storage.local.set({folderPendingDisconnect:false});}});});
 const resumeFolders=()=>{chrome.storage.local.get('folderAutoEnabled').then(async s=>{if(s.folderAutoEnabled){await registerFolderHints();await chrome.alarms.create('folders-periodic',{periodInMinutes:15});requestFolderRun();}});};
-chrome.runtime.onStartup.addListener(resumeFolders);chrome.runtime.onInstalled.addListener(resumeFolders);
-chrome.tabs.onActivated.addListener(info=>{chrome.storage.local.get('folderScanLock').then(s=>{if(s.folderScanLock?.tabId===info.tabId)chrome.storage.local.set({folderScanLock:{...s.folderScanLock,taken:true}});});});
+chrome.runtime.onStartup.addListener(resumeFolders);
+chrome.runtime.onInstalled.addListener(()=>{(async()=>{const {folderScanLock}=await chrome.storage.local.get('folderScanLock');await closeFolderTab(folderScanLock?.tabId);await chrome.storage.local.set({folderScanLock:null,folderLastAttempt:0,folderRunning:false});resumeFolders();})().catch(()=>{});});
+chrome.windows.onFocusChanged.addListener(windowId=>{chrome.storage.local.get('folderScanLock').then(s=>{if(s.folderScanLock?.windowId===windowId)chrome.storage.local.set({folderScanLock:{...s.folderScanLock,taken:true}});});});
+chrome.tabs.onActivated.addListener(info=>{chrome.storage.local.get('folderScanLock').then(s=>{if(s.folderScanLock?.windowId===info.windowId&&s.folderScanLock.tabId!==info.tabId)chrome.storage.local.set({folderScanLock:{...s.folderScanLock,taken:true}});});});
 chrome.permissions.onRemoved.addListener(()=>{Promise.all([chrome.permissions.contains(X_ACCESS),chrome.storage.local.get('folderAutoEnabled')]).then(([ok,s])=>{if(!ok&&s.folderAutoEnabled)stopAutomaticFolders();});});

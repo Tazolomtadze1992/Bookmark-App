@@ -5,7 +5,8 @@ function setup({allowed=true,active=false,rejected=false,wrong=false}={}){
  const event=()=>({addListener:fn=>messages.push(fn)}),chrome={
   storage:{local:{get:async()=>({...state}),set:async next=>Object.assign(state,next)}},
   permissions:{contains:async()=>allowed,remove:async()=>{},onRemoved:event()},
-  tabs:{create:async args=>{calls.push(['create',args]);return {id:77};},get:async id=>({id,url:'https://x.com/i/history',active}),update:async()=>{},remove:async id=>removed.push(id),query:async()=>[],sendMessage:async()=>{},onActivated:event()},
+  windows:{create:async args=>{calls.push(['create',args]);return {id:88,tabs:[{id:77,windowId:88}]};},get:async()=>({id:88,focused:active}),onFocusChanged:event()},
+  tabs:{get:async id=>({id,windowId:88,url:'https://x.com/i/history',active:true}),update:async()=>{},remove:async id=>removed.push(id),query:async()=>[],sendMessage:async()=>{},onActivated:event()},
   scripting:{executeScript:async()=>[{result:{account:'owner'}}],unregisterContentScripts:async()=>{},registerContentScripts:async()=>{}},
   runtime:{onMessage:event(),onStartup:event(),onInstalled:event(),getURL:p=>'chrome-extension://fixture/'+p,openOptionsPage:async()=>{}},
   alarms:{create:async()=>{},clear:async()=>{},onAlarm:event()}
@@ -14,14 +15,14 @@ function setup({allowed=true,active=false,rejected=false,wrong=false}={}){
  vm.runInContext(fs.readFileSync(require.resolve('../extension/folder-background.js'),'utf8'),context);
  return {context,state,calls,removed,messages};
 }
-test('automatic sync uses a separate inactive X tab and closes only that tab',async()=>{
- const s=setup();await s.context.automaticFolders();assert.equal(s.calls[0][0],'create');assert.equal(s.calls[0][1].active,false);
+test('automatic sync uses a separate unfocused X window and closes only that tab',async()=>{
+ const s=setup();await s.context.automaticFolders();assert.equal(s.calls[0][0],'create');assert.equal(s.calls[0][1].focused,false);
  assert.deepEqual(s.removed,[77]);assert.ok(s.calls.some(c=>c[0]==='request'&&c[1].endsWith('/apply')));assert.ok(s.state.folderLastSuccess);assert.equal(s.state.folderRunning,false);
 });
 test('no permission means no X tab and no upload',async()=>{
  const s=setup({allowed:false});await s.context.automaticFolders();assert.equal(s.calls.length,0);
 });
-test('a user opening the scan tab stops the check and preserves their tab',async()=>{
+test('a user focusing the scan window stops the check and preserves their tab',async()=>{
  const s=setup({active:true});await s.context.automaticFolders();assert.equal(s.removed.length,0);assert.ok(!s.calls.some(c=>c[0]==='request'&&c[1].endsWith('/apply')));assert.match(s.state.folderSyncError,/paused/);
 });
 test('a wrong account cannot upload assignments',async()=>{
