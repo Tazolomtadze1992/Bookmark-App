@@ -3,6 +3,7 @@ import {createDetailMotion} from './detail-motion.js';
 import {folderOptions,inFolder,toggleFolder,validFolderSelection} from './folders.js';
 import {mountCollectionMenu} from './collection-menu.js';
 import {createNavigationMotion} from './navigation-motion.js';
+import {createCollectionScroll} from './collection-scroll.js';
 import {createGridCache} from './grid-cache.js';
 import {matchesReference,searchShortcut} from './search.js';
 import {skeletonBox,watchPreview,acquirePreview,syncPreviews,showLoadingGrid,clearLoadingGrid,measureLoadingGrid,beginHeaderLoading,revealHeaderControls,showFolderLoading,clearFolderLoading,revealMedia,settleLoadingReveal} from './loading.js';
@@ -15,6 +16,7 @@ const dialog=$('#detail');
 let detailSource=null;
 const detailMotion=createDetailMotion(dialog,()=>detailSource?.getBoundingClientRect(),()=>document.querySelector('.topbar')?.getBoundingClientRect().bottom||0);
 const navigationMotion=createNavigationMotion($('#captures'),renderGrid);
+const collectionScroll=createCollectionScroll(section);
 function markDetailSource(id){detailSource?.classList.remove('detail-source');detailSource=document.querySelector(`[data-id="${id}"] .card-surface`);detailSource?.classList.add('detail-source');}
 async function api(path,method='GET',data,options={}){const r=window.libraryAPI?await window.libraryAPI.request(path,method,data,options):await fetch(path,{method,...options,headers:{'X-Capture-Token':token,...(data?{'Content-Type':'application/json'}:{})},body:data?JSON.stringify(data):undefined});if(!r.ok){let e;try{e=await r.json();}catch{}throw Error(e?.error||'Could not reach your library.');}return r;}
 function el(tag,text,cls){const n=document.createElement(tag);if(text)n.textContent=text;if(cls)n.className=cls;return n;}
@@ -359,7 +361,7 @@ dialog.addEventListener('click',e=>{
 
 dialog.addEventListener('close',()=>{detailPointer=null;detailMotion.settle();for(const c of detailCleanups.splice(0))c();$('#detail-stage').replaceChildren();detailSource?.classList.remove('detail-source');detailSource=null;document.body.classList.remove('detail-open');activeId=null;closingDetail=null;for(const p of players)p.sync();returnFocus?.focus({preventScroll:true});if(pendingRefresh){pendingRefresh=false;const id=returnFocus?.closest('[data-id]')?.dataset.id;refresh().then(()=>{document.querySelector(`[data-id="${id}"] .open-card`)?.focus({preventScroll:true});}).catch(error);}});
 beginHeaderLoading({folders:!!window.libraryAPI?.cloud});
-mountCollectionMenu($('#collection-menu'),{onReady:async()=>{await revealHeaderControls();renderFolders();},value:section,themeContainer:$('#theme-control'),searchContainer:$('#search-trigger'),onSearchOpen:openSearch,onValueChange:(value,{animate})=>{const direction=value==='website'?1:-1;section=value;if(state){renderFolders();navigationMotion.update({animate,direction}).catch(error);}else renderGrid();}});
+mountCollectionMenu($('#collection-menu'),{onReady:async()=>{await revealHeaderControls();renderFolders();},value:section,themeContainer:$('#theme-control'),searchContainer:$('#search-trigger'),onSearchOpen:openSearch,onValueChange:(value,options)=>collectionScroll.change(value,()=>{section=value;navigationMotion.update(options).catch(error);})});
 if(!window.libraryAPI?.cloud){const link=el('a','Cloud saves');link.id='cloud-status';link.href='/cloud';document.querySelector('.account-panel').append(link);}
 if(!window.libraryAPI?.cloud){const management=$('#library-management');const showManagement=()=>{management.hidden=location.hash!=='#manage';};addEventListener('hashchange',showManagement);showManagement();}
 window.addEventListener('library-refresh',()=>{refresh().catch(loadError);refreshStatus(true);});
