@@ -10,7 +10,7 @@
    if(!choice||choice.textContent.trim()!==args.name)throw Error('X folder menu changed during the check.');
    choice.click();
   }
-  if(action==='scroll')window.scrollBy({top:Math.max(200,innerHeight*.6),behavior:'instant'});
+  if(action==='scroll'||action==='back')window.scrollBy({top:(action==='back'?-1:1)*Math.max(200,innerHeight*(action==='back' ? .45 : .6)),behavior:'instant'});
   if(action==='top')window.scrollTo({top:0,behavior:'instant'});
   const account=document.querySelector('[data-testid="SideNav_AccountSwitcher_Button"]')?.textContent.match(/@([A-Za-z0-9_]{1,15})/)?.[1]||document.querySelector('nav a[aria-label="Profile"]')?.getAttribute('href')?.slice(1);
   const primary=document.querySelector('main [data-testid="primaryColumn"]')||document.querySelector('main');
@@ -31,7 +31,7 @@
    posts,loading:!!document.querySelector('main [role="progressbar"],[role="menu"] [role="progressbar"]'),empty:!!document.querySelector('main [data-testid="emptyState"]'),
    history:!![...document.querySelectorAll('main h1,main h2')].find(n=>n.textContent==='Edit History'),
    visible:document.visibilityState==='visible',viewport:innerHeight,timelineName:timeline?.getAttribute('aria-label')?.replace(/^Timeline:\s*/,''),
-   timelineEnd:timeline?.getBoundingClientRect().bottom,renderedEnd,
+   timelineEnd:timeline?.getBoundingClientRect().bottom,renderedEnd,renderedStart:articles.length?Math.min(...articles.map(n=>n.getBoundingClientRect().top)):null,pendingArticles:articles.filter(n=>{const rect=n.getBoundingClientRect();return rect.bottom>0&&rect.top<innerHeight&&!n.querySelector('time')?.closest('a')?.getAttribute('href')?.match(/\/status\/(\d{1,25})(?:$|\/)/);}).length,
    top:document.scrollingElement.scrollTop,max:document.scrollingElement.scrollHeight-document.scrollingElement.clientHeight};
  }
  async function scan(driver,{account,now=()=>Date.now(),timeout=240000}={}){
@@ -50,7 +50,9 @@
    await driver.step('choose',{index,name:names[index]});await driver.pause(500);await driver.step('top');
    await ready(p=>p.path.includes('/bookmarks/')&&p.selected===names[index]&&(!p.timelineName||p.timelineName===names[index])&&p.top<2&&!p.loading&&(p.posts.length||p.empty));
    const id=page.path.match(/\/bookmarks\/(\d{1,25})$/)?.[1];if(!id)throw Error('Could not identify the X folder.');
-   const ids=new Set();let stableSince=now(),previousSize=-1,previousMax=-1,renderWait=now();
+   const ids=new Set();
+   for(const direction of ['scroll','back']){
+   let stableSince=now(),previousSize=-1,previousMax=-1,renderWait=now();
    while(true){
     check(page);if(!page.account)throw Error('Sign in to X in Chrome to resume automatic folders.');
     if(page.visible===false)throw Error('X paused rendering in its background window. Keep Chrome visible; the check will retry.');
@@ -59,24 +61,27 @@
     const bottom=page.top>=page.max-2;
     // X reserves space for virtualized cards before mounting them. Scrolling
     // through that blank space is not evidence that a folder was fully read.
-    const rendered=page.renderedEnd===undefined||page.empty||page.renderedEnd!==null&&page.renderedEnd>=Math.min(page.viewport*.8,page.timelineEnd??page.viewport)-128;
+    const rendered=direction==='back'?(page.renderedStart===undefined||page.empty||page.renderedStart!==null&&page.renderedStart<=page.viewport*.2+128):(page.renderedEnd===undefined||page.empty||page.renderedEnd!==null&&page.renderedEnd>=Math.min(page.viewport*.8,page.timelineEnd??page.viewport)-128);
     const completeEnd=page.timelineEnd===undefined||page.empty||page.renderedEnd!==null&&page.timelineEnd-page.renderedEnd<128;
-    if(!rendered||bottom&&!completeEnd){
+    if(page.pendingArticles||!rendered||direction==='scroll'&&bottom&&!completeEnd){
      if(now()-renderWait>20000)throw Error('X did not render all folder cards. Previous assignments kept; retrying.');
      stableSince=now();await driver.pause(500);page=await driver.step('read');continue;
     }
     renderWait=now();
-    if(ids.size!==previousSize||page.max!==previousMax||page.loading||!bottom)stableSince=now();
+    const boundary=direction==='back'?page.top<2:bottom;
+    if(ids.size!==previousSize||page.max!==previousMax||page.loading||!boundary)stableSince=now();
     previousSize=ids.size;previousMax=page.max;
-    if(page.empty&&!page.loading||bottom&&completeEnd&&!page.loading&&now()-stableSince>=3000)break;
-    await driver.step('scroll');await driver.pause(400);page=await driver.step('read');
+    if(page.empty&&!page.loading||boundary&&(direction==='back'||completeEnd)&&!page.loading&&now()-stableSince>=3000)break;
+    await driver.step(direction);await driver.pause(400);page=await driver.step('read');
+   }
+   if(page.empty)break;
    }
    folders.push({id,name:names[index],post_ids:[...ids],complete:true});
   }
   // A changed folder list invalidates the traversal instead of deleting names.
   const finalMenu=folders.length?await openMenu():listing;
   if(JSON.stringify(finalMenu.menu)!==JSON.stringify(names))throw Error('X folders changed during the check. It will retry.');
-  return {account_handle:account.toLowerCase(),complete:true,render_check:2,observed_at:now()/1000,folders,refs,edit_families:[]};
+  return {account_handle:account.toLowerCase(),complete:true,render_check:3,observed_at:now()/1000,folders,refs,edit_families:[]};
  }
  async function histories(driver,scan,ids,{now=()=>Date.now()}={}){
   if(ids.length>50)throw Error('Too many unmatched posts for one check.');

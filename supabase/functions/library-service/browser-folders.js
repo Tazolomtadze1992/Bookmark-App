@@ -2,7 +2,7 @@
 // credentials, or an arbitrary state patch from an extension.
 const validId=id=>typeof id==='string'&&/^\d{1,25}$/.test(id);
 export function validateBrowserFolders(body,expectedHandle,now=Date.now()/1000){
- if(body?.render_check!==2)throw Error('Reload the Reference Library extension to finish the folder loading fix.');
+ if(body?.render_check!==3)throw Error('Reload the Reference Library extension to finish the folder loading fix.');
  if(!body||body.complete!==true||typeof body.account_handle!=='string'||body.account_handle.toLowerCase()!==expectedHandle.toLowerCase())throw Error('Sign in to the linked X account before syncing folders.');
  if(!Number.isFinite(body.observed_at)||body.observed_at<now-900||body.observed_at>now+60)throw Error('Folder scan expired. Retrying with a fresh scan.');
  if(!Array.isArray(body.folders)||body.folders.length>100)throw Error('Invalid folder list.');
