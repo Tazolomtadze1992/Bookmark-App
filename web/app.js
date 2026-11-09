@@ -187,10 +187,8 @@ function albumPreview(item){
   else frame.append(el('p','Media unavailable. Open the original post.','text-preview'));
   frames.push(frame);slide.append(frame);slides.push(slide);track.append(slide);
  }
- const beforeNavigate=e=>{if(!detailMotion.beforeNavigate())e.preventDefault();};
  let wheelTravel=0,wheelDirection=0,wheelLatched=false,wheelTimer;
  const resetWheel=()=>{clearTimeout(wheelTimer);wheelTravel=0;wheelDirection=0;wheelLatched=false;};
- track.addEventListener('pointerdown',beforeNavigate);
  track.addEventListener('wheel',e=>{
   if(e.ctrlKey)return;
   e.preventDefault();
@@ -361,10 +359,15 @@ $('#close-detail').addEventListener('click',()=>closeDetail());
 const detailMedia='.media-image,.motion-video,.text-preview,.album-image-preview,.album-video-preview';
 const detailInteractive=`button,a,input,select,textarea,summary,${detailMedia}`;
 dialog.addEventListener('pointerdown',e=>{
- detailPointer={id:e.pointerId,x:e.clientX,y:e.clientY,background:!e.target.closest(detailInteractive),moved:false,cancelled:false};
+ detailPointer={id:e.pointerId,x:e.clientX,y:e.clientY,background:!e.target.closest(detailInteractive),
+  canSwipe:e.pointerType!=='mouse'&&!!e.target.closest('.album-track'),moved:false,cancelled:false};
 },true);
 const trackDetailPointer=e=>{
- if(detailPointer?.id===e.pointerId&&Math.hypot(e.clientX-detailPointer.x,e.clientY-detailPointer.y)>6)detailPointer.moved=true;
+ const gesture=detailPointer;
+ if(gesture?.id!==e.pointerId||gesture.moved||Math.hypot(e.clientX-gesture.x,e.clientY-gesture.y)<=6)return;
+ gesture.moved=true;
+ // Keep the opening in flight for a tap. A swipe needs the track's scroll overflow back.
+ if(gesture.canSwipe&&e.type==='pointermove')detailMotion.beforeNavigate();
 };
 window.addEventListener('pointermove',trackDetailPointer,true);
 window.addEventListener('pointerup',trackDetailPointer,true);
