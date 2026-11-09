@@ -224,7 +224,7 @@ html{scrollbar-gutter:stable}
 #close-detail::after,#detail-footer .source-link::after{content:'';position:absolute;inset:-6px;border-radius:inherit}
 #close-detail:focus-visible,#detail-footer .source-link:focus-visible{outline:2px solid oklch(1 0 0);outline-offset:3px;box-shadow:0 0 0 6px oklch(0 0 0 / .65)}
 @media(hover:hover) and (pointer:fine){#close-detail:hover,#detail-footer .source-link:hover{background:oklch(0 0 0 / .84)}}
-#close-detail:active,#detail-footer .source-link:active{scale:.96}
+#close-detail:active:where(:not(:focus-visible)),#detail-footer .source-link:active{scale:.96}
 @media(prefers-reduced-motion:reduce){#close-detail,#detail-footer .source-link{transition:none}#close-detail:active,#detail-footer .source-link:active{scale:1}#close-detail:active{background-color:oklch(0 0 0 / .88)}}
 #detail .detail-stage.has-album{padding:0}
 #detail .album-gallery{--album-height:var(--viewer-height);height:100%;width:100%}

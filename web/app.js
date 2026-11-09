@@ -142,17 +142,24 @@ function albumPreview(item){
   });update();
  }
  function go(index,animated=false){
+  // Opening moves the parent slides. Sample the frames before settling that motion.
+  const before=animated&&!reduced.matches?frames.map((frame,i)=>({
+   rect:frame.getBoundingClientRect(),
+   opacity:Number(getComputedStyle(frame).opacity)*Number(getComputedStyle(slides[i]).opacity)
+  })):null;
   if(!detailMotion.beforeNavigate())return;
   index=Math.max(0,Math.min(slides.length-1,index));
-  const before=frames.map(f=>f.getBoundingClientRect());cancelNavigation();
+  cancelNavigation();
   const target=slides[index];track.scrollTo({left:target.offsetLeft-(track.clientWidth-target.offsetWidth)/2,behavior:'instant'});pose();
-  if(!animated||reduced.matches)return;
+  if(!before)return;
   // Scroll establishes the destination once; compositor transforms carry the visible journey.
+  const destinations=frames.map(frame=>frame.getBoundingClientRect());
   navigation=frames.map((frame,i)=>{
-   const after=frame.getBoundingClientRect(),old=before[i],scale=Number(frame.dataset.scale);
+   const after=destinations[i],{rect:old,opacity}=before[i],scale=Number(frame.dataset.scale);
+   const x=old.x+old.width/2-after.x-after.width/2,y=old.y+old.height/2-after.y-after.height/2;
    return frame.animate([
-    {transform:`translate(${old.x+old.width/2-after.x-after.width/2}px, ${old.y+old.height/2-after.y-after.height/2}px) scale(${old.width/frame.offsetWidth})`},
-    {transform:`scale(${scale})`}
+    {transform:`translate(${x}px, ${y}px) scale(${scale*old.width/after.width})`,opacity},
+    {transform:`scale(${scale})`,opacity:1}
    ],{duration:300,easing:'cubic-bezier(.22,1,.36,1)',fill:'both'});
   });
   const run=navigation;Promise.allSettled(run.map(a=>a.finished)).then(()=>{if(navigation===run)cancelNavigation();});
@@ -355,7 +362,7 @@ function openDetail(id,trigger,animate=true){
  document.body.classList.add('detail-open');dialog.showModal();renderDetail();markDetailSource(id);
  for(const p of players)p.sync();detailMotion.open(from,animate);$('#close-detail').focus({preventScroll:true});
 }
-$('#close-detail').addEventListener('click',()=>closeDetail());
+$('#close-detail').addEventListener('click',e=>closeDetail(e.detail>0));
 const detailMedia='.media-image,.motion-video,.text-preview,.album-image-preview,.album-video-preview';
 const detailInteractive=`button,a,input,select,textarea,summary,${detailMedia}`;
 dialog.addEventListener('pointerdown',e=>{
