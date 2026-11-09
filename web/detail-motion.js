@@ -28,6 +28,7 @@ export function createDetailMotion(dialog, sourceRect, headerBottom=()=>0) {
   const panels=()=>[dialog.querySelector('#close-detail'),dialog.querySelector('#detail-footer .source-link')];
   const panelOffset=node=>`translateY(${node.id==='close-detail'?-4:4}px)`;
   const panelEasing='cubic-bezier(.25,.46,.45,.94)';
+  const neighborOffset='translateX(80px)',neighborDelay=40;
   const shadows=()=>[...dialog.querySelectorAll('.detail-shadow')];
   function prepareShadows(){
     shadowObserver?.disconnect();for(const shadow of shadows())shadow.remove();
@@ -90,10 +91,11 @@ export function createDetailMotion(dialog, sourceRect, headerBottom=()=>0) {
     }
     const clip=g&&!reduced.matches?viewportClip(from):null;
     if(clip)animate(stage(),[{clipPath:clip.covered},{clipPath:clip.clear}],duration);
-    // The remaining attachments have no matching grid object. Reveal them in their own space.
-    for(const neighbor of slides().slice(1))animate(neighbor,
-      [{opacity:0,transform:reduced.matches?'none':'translateX(8px)'},{opacity:1,transform:'none'}],
-      reduced.matches?120:240,'cubic-bezier(.22,1,.36,1)',undefined,reduced.matches?0:40);
+    // Let the next card become visible early enough to read the slide into its peek.
+    for(const neighbor of slides().slice(1)){
+      animate(neighbor,[{opacity:0},{opacity:1}],reduced.matches?120:90,'ease-out',undefined,reduced.matches?0:neighborDelay);
+      if(!reduced.matches)animate(neighbor,[{transform:neighborOffset},{transform:'none'}],260,undefined,undefined,neighborDelay);
+    }
     for(const shadow of shadows())animate(shadow,[{opacity:0},{opacity:1}],duration);
     for(const panel of panels().filter(Boolean))animate(panel,
       reduced.matches?[{opacity:0},{opacity:1}]:[{opacity:0,transform:panelOffset(panel)},{opacity:1,transform:'none'}],
@@ -105,7 +107,7 @@ export function createDetailMotion(dialog, sourceRect, headerBottom=()=>0) {
     // Sample each independently moving part before cancelling an interrupted entrance.
     const album=track(),browsing=!!album?.querySelector('.album-frame')?.getAnimations().length;
     const coverVisible=!album||(album.scrollLeft<2&&!browsing);
-    const active=slides()[Number(album?.dataset.activeIndex)||0]?.querySelector('.media-image,.motion-video,.text-preview');
+    const active=slides()[Number(album?.dataset.activeIndex)||0]?.querySelector('.album-image-preview,.media-image,.motion-video,.text-preview');
     const activeRect=active?.getBoundingClientRect();
     // Freeze browsing only after sampling its on-screen position (including interrupted navigation).
     album?.dispatchEvent(new Event('album-freeze'));
@@ -144,7 +146,8 @@ export function createDetailMotion(dialog, sourceRect, headerBottom=()=>0) {
     const clip=g&&!reduced.matches?viewportClip():null;
     if(clip)animate(stage(),[{clipPath:stageClip==='none'?clip.clear:stageClip},{clipPath:clip.covered}],duration);
     for(const frame of neighborFrames)animate(frame.node,
-      [{opacity:frame.opacity,transform:frame.transform},{opacity:0,transform:reduced.matches?'none':'translateX(8px)'}],
+      reduced.matches?[{opacity:frame.opacity},{opacity:0}]:
+        [{opacity:frame.opacity,transform:frame.transform},{opacity:0,transform:neighborOffset}],
       reduced.matches?100:120);
     for(const frame of panelFrames){
       frame.node.style.pointerEvents='none';

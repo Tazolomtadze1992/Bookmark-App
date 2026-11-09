@@ -79,18 +79,21 @@ function loadPreview(element,item,remote,scope,ready,failed){
   detailCleanups.push(()=>{disposed=true;request.release();});
  }
 }
-function motionPreview(item,media,scope,mediaPoster){
+function motionPreview(item,media,scope,mediaPoster,albumNeighbor=false){
 if(scope==='detail'){const existing=[...players].find(p=>p.itemId===item.id&&p.url===media.url&&p.scope==='grid');if(existing){const borrowed=existing.borrow();detailCleanups.push(borrowed.restore);return borrowed.wrap;}}
 const wrap=el('div',null,'motion-wrap'),video=el('video',null,'motion-video');video.muted=true;video.defaultMuted=true;video.loop=true;video.playsInline=true;video.preload='none';video.width=media.width;video.height=media.height;video.setAttribute('aria-label',`Video by ${author(item).name}`);const controls=el('div',null,'motion-controls'),note=el('p',null,'motion-note');note.setAttribute('role','status');let visible=false,disposed=false,blocked=false;const reduced=matchMedia('(prefers-reduced-motion: reduce)');
-async function sync(){if(disposed)return;if(!visible||wrap.closest('[hidden]')||document.hidden||(dialog.open&&scope==='grid')||reduced.matches){video.pause();return;}if(blocked)return;if(!video.src)video.src=media.url;try{await video.play();if(!disposed)note.textContent='';}catch(e){if(disposed||e.name==='AbortError')return;blocked=true;note.classList.remove('reduced-note');note.textContent=e.name==='NotAllowedError'?'Autoplay unavailable. Open the original post to watch.':'Preview unavailable. You can still open the original post.';controls.classList.add('needs-action');}}
+async function sync(){if(disposed)return;if(!visible||wrap.closest('[hidden]')||document.hidden||(dialog.open&&scope==='grid')||reduced.matches){video.pause();return;}if(blocked)return;if(!video.src)video.src=media.url;try{await video.play();if(!disposed)note.textContent='';}catch(e){if(disposed||e.name==='AbortError')return;blocked=true;note.classList.remove('reduced-note');note.textContent=e.name==='NotAllowedError'?'Autoplay unavailable. Open the original post to watch.':'Preview unavailable. You can still open the original post.';controls.classList.add('needs-action');if(albumNeighbor)show();}}
 wrap.style.setProperty('--media-ratio',media.width>0&&media.height>0?media.width/media.height:1);wrap.append(video,controls,note);
+if(albumNeighbor){wrap.classList.add('album-video-preview');if(media.width>0)wrap.style.setProperty('--preview-width',`${media.width}px`);}
 const bone=skeletonBox();wrap.classList.add('media-loading');wrap.append(bone);
 const show=()=>revealMedia(wrap);
 video.addEventListener('loadeddata',show,{once:true});
 video.addEventListener('error',()=>{show();blocked=true;note.classList.remove('reduced-note');note.textContent='Preview unavailable. You can still open the original post.';controls.classList.add('needs-action');});
-const poster=mediaPoster===undefined?state.x_images?.[item.post_id]:mediaPoster;
-if(poster||item.has_preview)loadPreview(wrap,item,poster,scope,value=>{video.poster=value.url;show();},()=>{show();});
-else show();
+const poster=albumNeighbor?mediaPoster:mediaPoster===undefined?state.x_images?.[item.post_id]:mediaPoster;
+const withoutPoster=()=>{if(!albumNeighbor||reduced.matches)show();};
+if(poster||(!albumNeighbor&&item.has_preview))loadPreview(wrap,item,poster,scope,value=>{video.poster=value.url;show();},withoutPoster);
+else withoutPoster();
+if(albumNeighbor)detailCleanups.push(()=>settleLoadingReveal(wrap));
 const io=new IntersectionObserver(entries=>{visible=entries[0].isIntersecting&&entries[0].intersectionRatio>=(scope==='detail'?.6:.1);sync();},{threshold:[.1,.6]});io.observe(wrap);const preference=()=>{note.classList.toggle('reduced-note',reduced.matches);note.textContent=reduced.matches?'Reduced motion: preview paused. Open the original post to watch.':'';controls.classList.toggle('needs-action',reduced.matches);sync();};if(reduced.matches){note.classList.add('reduced-note');note.textContent='Reduced motion: preview paused. Open the original post to watch.';controls.classList.add('needs-action');}reduced.addEventListener('change',preference);document.addEventListener('visibilitychange',sync);const player={sync,video,itemId:item.id,url:media.url,get scope(){return scope;},borrow(){
  const placeholder=el('div',null,'motion-placeholder');placeholder.style.aspectRatio=`${wrap.getBoundingClientRect().width} / ${wrap.getBoundingClientRect().height}`;wrap.before(placeholder);scope='detail';visible=true;
  return {wrap,restore(){scope='grid';video.muted=true;if(placeholder.isConnected){placeholder.replaceWith(wrap);}sync();}};
@@ -157,26 +160,29 @@ function albumPreview(item){
  for(const [index,media] of attachments.entries()){
   const slide=el('div',null,'album-slide');slide.style.setProperty('--media-ratio',ratio(media));slide.setAttribute('role','group');slide.setAttribute('aria-label',`Media ${index+1} of ${attachments.length}`);
   const frame=el('div',null,'album-frame');frame.style.transform=`scale(${index===0?1:.75})`;frame.dataset.scale=index===0?1:.75;frame.classList.toggle('album-neighbor',index!==0);
-  frame.addEventListener('click',e=>{if(e.target.closest('.media-image,.motion-video,.text-preview')&&index!==current)go(index,true);});
-  if(media.motion)frame.append(motionPreview(item,media.motion,'detail',media.poster));
+  frame.addEventListener('click',e=>{if(e.target.closest(detailMedia)&&index!==current)go(index,true);});
+  if(media.motion)frame.append(motionPreview(item,media.motion,'detail',media.poster,index>0));
   else if(media.poster){
    const img=el('img',null,'media media-image');img.alt=media.alt||`Image ${index+1} of ${attachments.length} — ${shortTitle(item)}`;img.loading='eager';
-   sizeImage(img,media.width,media.height,true);
+   sizeImage(img,media.width,media.height,index===0);
    img.src=media.poster;
-   // Only the opened album loads eagerly. Decode late neighbors before fading in their pixels.
-   let disposed=false,reveal=null;
-   const pending=index>0&&!(img.complete&&img.naturalWidth);
-   if(pending)img.style.opacity='0';
-   const show=async()=>{
-    try{await img.decode();}catch{return;}
-    if(disposed||!img.isConnected||!pending)return;
-    reveal=img.animate([{opacity:0},{opacity:1}],{duration:matchMedia('(prefers-reduced-motion: reduce)').matches?100:160,easing:'ease',fill:'both'});
-    reveal.finished.then(()=>{if(!disposed){img.style.opacity='';reveal?.cancel();}}).catch(()=>{});
-   };
-   img.addEventListener('error',()=>{if(!disposed)img.replaceWith(el('p','Image unavailable. Open the original post.','text-preview'));},{once:true});
-   frame.append(img);
-   if(pending)queueMicrotask(show);
-   detailCleanups.push(()=>{disposed=true;reveal?.cancel();});
+   if(index===0){
+    frame.append(img);
+    img.addEventListener('error',()=>img.replaceWith(el('p','Image unavailable. Open the original post.','text-preview')),{once:true});
+   }else{
+    const preview=el('div',null,'image-preview album-image-preview');
+    if(media.width>0)preview.style.setProperty('--preview-width',`${media.width}px`);
+    preview.append(img);frame.append(preview);
+    if(!(img.complete&&img.naturalWidth)){
+     preview.classList.add('media-loading');preview.append(skeletonBox());
+     let disposed=false;
+     img.decode().then(()=>{if(!disposed)revealMedia(preview);},()=>{
+      if(disposed)return;
+      img.replaceWith(el('p','Image unavailable. Open the original post.','preview-fallback'));revealMedia(preview);
+     });
+     detailCleanups.push(()=>{disposed=true;settleLoadingReveal(preview);});
+    }
+   }
   }
   else frame.append(el('p','Media unavailable. Open the original post.','text-preview'));
   frames.push(frame);slide.append(frame);slides.push(slide);track.append(slide);
@@ -352,7 +358,8 @@ function openDetail(id,trigger,animate=true){
  for(const p of players)p.sync();detailMotion.open(from,animate);$('#close-detail').focus({preventScroll:true});
 }
 $('#close-detail').addEventListener('click',()=>closeDetail());
-const detailInteractive='button,a,input,select,textarea,summary,.media-image,.motion-video,.text-preview';
+const detailMedia='.media-image,.motion-video,.text-preview,.album-image-preview,.album-video-preview';
+const detailInteractive=`button,a,input,select,textarea,summary,${detailMedia}`;
 dialog.addEventListener('pointerdown',e=>{
  detailPointer={id:e.pointerId,x:e.clientX,y:e.clientY,background:!e.target.closest(detailInteractive),moved:false,cancelled:false};
 },true);

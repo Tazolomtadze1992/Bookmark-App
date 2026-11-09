@@ -248,6 +248,10 @@ html{scrollbar-gutter:stable}
 /* Active media owns the center; neighboring attachments recede without changing layout. */
 #detail .album-track{gap:clamp(32px,8vw,160px)}
 #detail .album-frame{position:relative;isolation:isolate;display:flex;align-items:center;justify-content:center;width:100%;height:100%;transform-origin:center}
+#detail .album-image-preview,#detail .album-video-preview{width:min(100%,var(--preview-width,100%));height:auto;aspect-ratio:var(--media-ratio);border-radius:10px}
+#detail .album-video-preview{background:var(--soft)}
+#detail .album-image-preview>.media-image,#detail .album-video-preview>.motion-video{width:100%;height:100%}
+#detail .album-video-preview>.motion-note{position:absolute;inset:auto 0 0}
 #detail .album-neighbor{cursor:pointer}
 #detail .album-return{position:fixed;z-index:4;pointer-events:none;transform-origin:center}
 #detail .album-return .album-frame{width:100%;height:100%;transform:none}
