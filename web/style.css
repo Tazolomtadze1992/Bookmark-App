@@ -432,3 +432,14 @@ html{scrollbar-gutter:stable}
 @media(prefers-reduced-motion:reduce){
  .header-loading-overlay .loading-bone,.folder-loading-pill .loading-bone{animation:none}
 }
+
+/* Phone layout: folder pills scroll sideways in one row; cards fill the width in one column. */
+@media(max-width:760px){
+ .topbar .folder-bar{flex-wrap:nowrap;flex-basis:calc(100% + 40px);width:calc(100% + 40px);max-width:none;margin-inline:-20px}
+ .topbar #folder-filters{flex-wrap:nowrap;width:100%;max-width:none;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-inline:20px;scroll-padding-inline:20px}
+ .topbar #folder-filters::-webkit-scrollbar{display:none}
+ .topbar .folder-pill{flex:none;max-width:none}
+}
+@media(max-width:600px){
+ .masonry,.web-grid{grid-template-columns:minmax(0,1fr)}
+}
