@@ -331,8 +331,8 @@ html{scrollbar-gutter:stable}
 @media(prefers-reduced-motion:reduce){.header-button,.header-button::before,.collection-choice .collection-icon,.collection-selection,.pill-label{transition:none}.folder-pill:active:not(:focus-visible)::before,.folder-pill:active:not(:focus-visible) .pill-label,.collection-choice:active:not(:focus-visible) .collection-icon{transform:none}}
 
 /* Search uses saved metadata while the media cards stay visually unchanged. */
-:root{--search-clear:oklch(0.6 0 0);--search-clear-hover:oklch(0.4 0 0);--search-focus-ring:oklch(0.89 0 0)}
-:root[data-theme="dark"]{--search-clear-hover:oklch(0.8 0 0);--search-focus-ring:oklch(0.33 0 0)}
+:root{--search-clear:oklch(0.6 0 0);--search-clear-hover:oklch(0.4 0 0)}
+:root[data-theme="dark"]{--search-clear-hover:oklch(0.8 0 0)}
 /* The two 4px surface insets create the visible 8px gap. */
 .library-tools{order:2;display:flex;align-items:center;gap:0;margin-left:auto;flex:none}
 .search-control{--search-hit-size:40px;--search-width:140px;position:relative;isolation:isolate;flex:none;width:var(--search-hit-size);height:var(--search-hit-size)}
@@ -346,7 +346,9 @@ html{scrollbar-gutter:stable}
 .library-search input{width:100%;min-width:0;height:100%;margin:0;padding:0;border:0;outline:none;background:transparent;color:inherit;font:inherit;font-size:13px;font-weight:500;line-height:1.5;appearance:none}
 .library-search input::-webkit-search-cancel-button{appearance:none}
 .library-search input::placeholder{color:var(--muted);opacity:1}
-.library-search:focus-within::before{box-shadow:inset 0 0 0 1px var(--search-focus-ring)}
+/* The expanding field and caret show focus; a ring returns only for increased contrast. */
+@media(prefers-contrast:more){.library-search:focus-within::before{box-shadow:inset 0 0 0 2px var(--focus)}}
+@media(forced-colors:active){.library-search:focus-within::before{outline:2px solid Highlight;outline-offset:-2px}}
 .library-search button{position:absolute;top:0;right:0;isolation:isolate;display:grid;place-items:center;flex:none;width:var(--search-hit-size);height:var(--search-hit-size);padding:0;border-radius:50%;color:var(--search-clear);background:transparent}
 .library-search button::before{content:'';position:absolute;left:50%;top:50%;width:24px;height:24px;transform:translate(-50%,-50%);border-radius:50%;z-index:-1;pointer-events:none;background:transparent}
 .search-clear-icon{width:16px;height:16px;background:currentColor;mask:url('/icons/x.svg') center/contain no-repeat}
